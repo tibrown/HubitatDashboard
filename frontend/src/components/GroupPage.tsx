@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react'
-import { groups } from '../config/groups'
+import { useState, useMemo, useEffect } from 'react'
+import { Pencil, X, Plus, ChevronDown } from 'lucide-react'
+import { groups as staticGroups } from '../config/groups'
+import { useDeviceStore } from '../store/deviceStore'
+import { useGroupStore } from '../store/groupStore'
 import type { TileConfig } from '../types'
+import { autoTileType } from '../utils/autoTileType'
+import { showToast } from '../utils/toast'
 import { SwitchTile } from './tiles/SwitchTile'
 import { DimmerTile } from './tiles/DimmerTile'
 import { RGBWTile } from './tiles/RGBWTile'
@@ -24,9 +29,9 @@ interface Props {
 function useGridColumns() {
   const getColumns = () => {
     const w = window.innerWidth
-    if (w >= 1280) return 5 // xl
-    if (w >= 1024) return 4 // lg
-    if (w >= 640) return 3  // sm
+    if (w >= 1280) return 5
+    if (w >= 1024) return 4
+    if (w >= 640) return 3
     return 2
   }
   const [cols, setCols] = useState(getColumns)
@@ -58,57 +63,353 @@ function renderTile(tile: TileConfig) {
   const id = tile.deviceId ?? tile.tileType
   const base = { deviceId: tile.deviceId ?? '', label: tile.label }
   switch (tile.tileType) {
-    case 'switch': return <SwitchTile key={id} {...base} />
-    case 'dimmer': return <DimmerTile key={id} {...base} />
-    case 'rgbw': return <RGBWTile key={id} {...base} />
-    case 'contact': return <ContactTile key={id} {...base} />
-    case 'motion': return <MotionTile key={id} {...base} />
-    case 'temperature': return <TemperatureTile key={id} {...base} />
-    case 'power-meter': return <PowerMeterTile key={id} {...base} />
-    case 'button': return <ButtonTile key={id} {...base} />
-    case 'lock': return <LockTile key={id} {...base} />
-    case 'connector': return <ConnectorSwitchTile key={id} {...base} />
-    case 'hub-variable': return <HubVariableTile key={id} hubVarName={tile.hubVarName ?? ''} label={tile.label} />
-    case 'hsm': return <HSMTile key="hsm" />
-    case 'mode': return <ModeTile key="mode" />
+    case 'switch':         return <SwitchTile key={id} {...base} />
+    case 'dimmer':         return <DimmerTile key={id} {...base} />
+    case 'rgbw':           return <RGBWTile key={id} {...base} />
+    case 'contact':        return <ContactTile key={id} {...base} />
+    case 'motion':         return <MotionTile key={id} {...base} />
+    case 'temperature':    return <TemperatureTile key={id} {...base} />
+    case 'power-meter':    return <PowerMeterTile key={id} {...base} />
+    case 'button':         return <ButtonTile key={id} {...base} />
+    case 'lock':           return <LockTile key={id} {...base} />
+    case 'connector':      return <ConnectorSwitchTile key={id} {...base} />
+    case 'hub-variable':   return <HubVariableTile key={id} hubVarName={tile.hubVarName ?? ''} label={tile.label} />
+    case 'hsm':            return <HSMTile key="hsm" />
+    case 'mode':           return <ModeTile key="mode" />
     case 'ring-detection': return <RingDetectionTile key={id} deviceId={tile.deviceId ?? ''} label={tile.label} lrpHubVarName={tile.hubVarName ?? ''} />
-    case 'presence': return <PresenceTile key={id} {...base} />
-    default: return null
+    case 'presence':       return <PresenceTile key={id} {...base} />
+    default:               return null
   }
 }
 
-export function GroupPage({ groupId }: Props) {
-  const group = groups.find((g) => g.id === groupId)
-  const numCols = useGridColumns()
+/** Ordered list of {id, name} for all groups — used by the Add-to dropdown. */
+function useAllGroupNames() {
+  const groupOrder   = useGroupStore((s) => s.groupOrder)
+  const customGroups = useGroupStore((s) => s.customGroups)
+  const staticNameMap = useMemo(
+    () => Object.fromEntries(staticGroups.map((g) => [g.id, g.displayName])),
+    [],
+  )
+  return groupOrder.map((id) => {
+    const sName = staticNameMap[id]
+    if (sName) return { id, name: sName }
+    const c = customGroups.find((g) => g.id === id)
+    return { id, name: c?.displayName ?? id }
+  })
+}
 
-  if (!group) {
+/** Overlay shown over each tile in edit mode. */
+function EditOverlay({
+  tile,
+  groupId,
+  isOther,
+}: {
+  tile: TileConfig
+  groupId: string
+  isOther: boolean
+}) {
+  const [showMenu, setShowMenu] = useState(false)
+  const allNames          = useAllGroupNames()
+  const addDeviceToGroup  = useGroupStore((s) => s.addDeviceToGroup)
+  const removeFn          = useGroupStore((s) => s.removeDeviceFromGroup)
+
+  const deviceId = tile.deviceId
+  if (!deviceId) return null // special tiles (hsm, mode) can't be moved
+
+  const canRemove = !isOther
+
+  const handleRemove = () => {
+    const ok = removeFn(groupId, deviceId)
+    if (!ok) showToast('Cannot remove — device must belong to at least one group', 'error')
+    else showToast('Removed from group')
+  }
+
+  const handleAddTo = (targetId: string, targetName: string) => {
+    addDeviceToGroup(targetId, deviceId)
+    showToast(`Added to ${targetName}`)
+    setShowMenu(false)
+  }
+
+  const available = allNames.filter((g) => g.id !== groupId && g.id !== 'other')
+
+  return (
+    <div className="absolute inset-0 rounded-xl bg-black/60 z-10 flex items-center justify-center gap-2 p-2">
+      <div className="flex gap-2 flex-wrap justify-center">
+        {canRemove && (
+          <button
+            onClick={handleRemove}
+            className="flex items-center gap-1 px-2 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium min-h-[32px]"
+          >
+            <X size={12} /> Remove
+          </button>
+        )}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu((v) => !v)}
+            className="flex items-center gap-1 px-2 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium min-h-[32px]"
+          >
+            <Plus size={12} /> Add to <ChevronDown size={10} />
+          </button>
+          {showMenu && (
+            <div
+              className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[140px] max-h-48 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {available.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => handleAddTo(g.id, g.name)}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Header shared by all group pages. */
+function GroupHeader({
+  title,
+  subtitle,
+  editMode,
+  onToggleEdit,
+}: {
+  title: string
+  subtitle?: string
+  editMode: boolean
+  onToggleEdit: () => void
+}) {
+  return (
+    <div className="flex items-start justify-between mb-4 gap-3">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
+        {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+      </div>
+      <button
+        onClick={onToggleEdit}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors flex-shrink-0 ${
+          editMode
+            ? 'bg-blue-600 text-white hover:bg-blue-700'
+            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+        }`}
+        aria-pressed={editMode}
+      >
+        <Pencil size={14} />
+        {editMode ? 'Done' : 'Edit'}
+      </button>
+    </div>
+  )
+}
+
+/** Renders a single tile, wrapped in a relative container for edit overlays. */
+function TileWrapper({
+  tile,
+  groupId,
+  isOther,
+  editMode,
+  index,
+}: {
+  tile: TileConfig
+  groupId: string
+  isOther: boolean
+  editMode: boolean
+  index: number
+}) {
+  return (
+    <div className="relative" key={tile.deviceId ?? tile.tileType ?? `tile-${index}`}>
+      {renderTile(tile)}
+      {editMode && <EditOverlay tile={tile} groupId={groupId} isOther={isOther} />}
+    </div>
+  )
+}
+
+function OtherGroupPage() {
+  const [editMode, setEditMode] = useState(false)
+  const numCols      = useGridColumns()
+  const devices      = useDeviceStore((s) => s.devices)
+  const groupAdditions  = useGroupStore((s) => s.groupAdditions)
+  const groupExclusions = useGroupStore((s) => s.groupExclusions)
+
+  const claimed = useMemo(() => {
+    const set = new Set<string>()
+    for (const g of staticGroups) {
+      if (g.id === 'other') continue
+      const excl = groupExclusions[g.id] ?? []
+      for (const tile of g.tiles) {
+        if (tile.deviceId && !excl.includes(tile.deviceId)) set.add(tile.deviceId)
+      }
+    }
+    for (const ids of Object.values(groupAdditions)) {
+      for (const id of ids) set.add(id)
+    }
+    return set
+  }, [groupAdditions, groupExclusions])
+
+  const unclaimedTiles: TileConfig[] = useMemo(
+    () =>
+      Object.values(devices)
+        .filter((d) => !claimed.has(d.id))
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map((d) => ({ deviceId: d.id, label: d.label, tileType: autoTileType(d) })),
+    [devices, claimed],
+  )
+
+  if (unclaimedTiles.length === 0) {
     return (
-      <div className="p-6 text-gray-500 dark:text-gray-400">
-        <p className="text-lg font-medium">Group not found: <span className="font-mono">{groupId}</span></p>
-        <p className="text-sm mt-1">This group will be available once devices are configured.</p>
+      <div className="p-4 sm:p-6">
+        <GroupHeader
+          title="Other"
+          subtitle="All devices are assigned to groups."
+          editMode={editMode}
+          onToggleEdit={() => setEditMode((v) => !v)}
+        />
       </div>
     )
   }
 
-  const pinnedTiles = group.tiles.filter((t) => PINNED_TYPES.has(t.tileType))
-  const restTiles = group.tiles.filter((t) => !PINNED_TYPES.has(t.tileType))
-  const tilesOrNull = sortColumnMajor(restTiles, numCols)
+  const tilesOrNull = sortColumnMajor(unclaimedTiles, numCols)
+  return (
+    <div className="p-4 sm:p-6">
+      <GroupHeader
+        title="Other"
+        subtitle={`${unclaimedTiles.length} device${unclaimedTiles.length !== 1 ? 's' : ''} not assigned to any group`}
+        editMode={editMode}
+        onToggleEdit={() => setEditMode((v) => !v)}
+      />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {tilesOrNull.map((tile, i) =>
+          tile ? (
+            <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId="other" isOther={true} editMode={editMode} index={i} />
+          ) : (
+            <div key={`empty-${i}`} aria-hidden="true" />
+          ),
+        )}
+      </div>
+    </div>
+  )
+}
+
+function StaticGroupPage({ groupId }: Props) {
+  const [editMode, setEditMode] = useState(false)
+  const numCols         = useGridColumns()
+  const devices         = useDeviceStore((s) => s.devices)
+  const groupAdditions  = useGroupStore((s) => s.groupAdditions)
+  const groupExclusions = useGroupStore((s) => s.groupExclusions)
+
+  const staticGroup = staticGroups.find((g) => g.id === groupId)
+  if (!staticGroup) {
+    return (
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        <p className="text-lg font-medium">Group not found: <span className="font-mono">{groupId}</span></p>
+      </div>
+    )
+  }
+
+  const exclusions = groupExclusions[groupId] ?? []
+  const baseTiles = staticGroup.tiles.filter(
+    (t) => !t.deviceId || !exclusions.includes(t.deviceId),
+  )
+  const baseTileDeviceIds = new Set(baseTiles.map((t) => t.deviceId).filter(Boolean))
+  const addedIds = groupAdditions[groupId] ?? []
+  const addedTiles: TileConfig[] = addedIds
+    .filter((id) => !baseTileDeviceIds.has(id))
+    .flatMap((id) => {
+      const device = devices[id]
+      if (!device) return []
+      return [{ deviceId: id, label: device.label, tileType: autoTileType(device) } as TileConfig]
+    })
+
+  const resolvedTiles = [...baseTiles, ...addedTiles]
+  const pinnedTiles   = resolvedTiles.filter((t) => PINNED_TYPES.has(t.tileType))
+  const restTiles     = resolvedTiles.filter((t) => !PINNED_TYPES.has(t.tileType))
+  const tilesOrNull   = sortColumnMajor(restTiles, numCols)
 
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{group.displayName}</h1>
+      <GroupHeader
+        title={staticGroup.displayName}
+        editMode={editMode}
+        onToggleEdit={() => setEditMode((v) => !v)}
+      />
       {pinnedTiles.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3">
-          {pinnedTiles.map((tile) => renderTile(tile))}
+          {pinnedTiles.map((tile, i) => (
+            <TileWrapper key={tile.deviceId ?? tile.tileType ?? `pinned-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+          ))}
         </div>
       )}
       {tilesOrNull.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {tilesOrNull.map((tile, i) =>
-            tile ? renderTile(tile) : <div key={`empty-${i}`} aria-hidden="true" />
+            tile ? (
+              <TileWrapper key={tile.deviceId ?? tile.tileType ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+            ) : (
+              <div key={`empty-${i}`} aria-hidden="true" />
+            ),
           )}
         </div>
       )}
     </div>
   )
+}
+
+function CustomGroupPage({ groupId }: Props) {
+  const [editMode, setEditMode] = useState(false)
+  const numCols        = useGridColumns()
+  const devices        = useDeviceStore((s) => s.devices)
+  const customGroups   = useGroupStore((s) => s.customGroups)
+  const groupAdditions = useGroupStore((s) => s.groupAdditions)
+
+  const customGroup = customGroups.find((g) => g.id === groupId)
+  if (!customGroup) {
+    return (
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        <p className="text-lg font-medium">Group not found: <span className="font-mono">{groupId}</span></p>
+      </div>
+    )
+  }
+
+  const addedIds = groupAdditions[groupId] ?? []
+  const tiles: TileConfig[] = addedIds.flatMap((id) => {
+    const device = devices[id]
+    if (!device) return []
+    return [{ deviceId: id, label: device.label, tileType: autoTileType(device) } as TileConfig]
+  })
+
+  const tilesOrNull = sortColumnMajor(tiles, numCols)
+
+  return (
+    <div className="p-4 sm:p-6">
+      <GroupHeader
+        title={customGroup.displayName}
+        subtitle={tiles.length === 0 ? 'Use Edit mode on any group to add devices here.' : undefined}
+        editMode={editMode}
+        onToggleEdit={() => setEditMode((v) => !v)}
+      />
+      {tilesOrNull.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {tilesOrNull.map((tile, i) =>
+            tile ? (
+              <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+            ) : (
+              <div key={`empty-${i}`} aria-hidden="true" />
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function GroupPage({ groupId }: Props) {
+  if (groupId === 'other') return <OtherGroupPage />
+
+  const isStatic = staticGroups.some((g) => g.id === groupId)
+  if (isStatic) return <StaticGroupPage groupId={groupId} />
+  return <CustomGroupPage groupId={groupId} />
 }

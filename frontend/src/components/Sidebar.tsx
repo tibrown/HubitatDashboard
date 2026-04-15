@@ -1,29 +1,16 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  Thermometer, Siren, Moon, Lightbulb, DoorOpen,
-  PersonStanding, Shield, AlertTriangle, Camera,
-  Bell, Star, Clock, Zap, Settings,
-  Sun, Circle, X
-} from 'lucide-react'
+import { Sun, Circle, X, ChevronUp, ChevronDown, Plus } from 'lucide-react'
 import { useConnectionStatus, useSidebarOpen, useDeviceStore } from '../store/deviceStore'
+import { useGroupStore } from '../store/groupStore'
+import { groups as staticGroupConfigs } from '../config/groups'
+import { ICON_MAP } from '../utils/iconMap'
+import { CreateGroupModal } from './CreateGroupModal'
 import { toggleDarkMode } from '../utils/darkMode'
 
-const groups = [
-  { id: 'environment',     name: 'Environment',       Icon: Thermometer },
-  { id: 'security-alarm',  name: 'Security Alarm',    Icon: Siren },
-  { id: 'night-security',  name: 'Night Security',    Icon: Moon },
-  { id: 'lights',          name: 'Lights',            Icon: Lightbulb },
-  { id: 'doors-windows',   name: 'Doors & Windows',   Icon: DoorOpen },
-  { id: 'presence-motion', name: 'Presence & Motion', Icon: PersonStanding },
-  { id: 'perimeter',       name: 'Perimeter',         Icon: Shield },
-  { id: 'emergency',       name: 'Emergency',         Icon: AlertTriangle },
-  { id: 'cameras',         name: 'Cameras',           Icon: Camera },
-  { id: 'ring-detections', name: 'Ring Detections',   Icon: Bell },
-  { id: 'seasonal',        name: 'Seasonal',          Icon: Star },
-  { id: 'hub-mode',        name: 'Hub Mode',          Icon: Clock },
-  { id: 'power-monitor',   name: 'Power Monitor',     Icon: Zap },
-  { id: 'system',          name: 'System',            Icon: Settings },
-]
+const STATIC_NAME_MAP: Record<string, string> = Object.fromEntries(
+  staticGroupConfigs.map((g) => [g.id, g.displayName]),
+)
 
 const statusColors: Record<string, string> = {
   connected:    'text-green-500',
@@ -35,6 +22,38 @@ export function Sidebar() {
   const connectionStatus = useConnectionStatus()
   const sidebarOpen = useSidebarOpen()
   const setSidebarOpen = useDeviceStore((s) => s.setSidebarOpen)
+  const [showModal, setShowModal] = useState(false)
+
+  const groupOrder     = useGroupStore((s) => s.groupOrder)
+  const customGroups   = useGroupStore((s) => s.customGroups)
+  const moveGroupUp    = useGroupStore((s) => s.moveGroupUp)
+  const moveGroupDown  = useGroupStore((s) => s.moveGroupDown)
+  const addCustomGroup = useGroupStore((s) => s.addCustomGroup)
+
+  // Build ordered nav items from groupOrder
+  const navItems = groupOrder.map((id) => {
+    const staticName = STATIC_NAME_MAP[id]
+    if (staticName) {
+      const iconName = staticGroupConfigs.find((g) => g.id === id)?.icon ?? 'LayoutGrid'
+      const Icon = ICON_MAP[iconName] ?? ICON_MAP['LayoutGrid']
+      return { id, name: staticName, Icon, isCustom: false }
+    }
+    const custom = customGroups.find((g) => g.id === id)
+    if (custom) {
+      const Icon = ICON_MAP[custom.iconName] ?? ICON_MAP['Home']
+      return { id, name: custom.displayName, Icon, isCustom: true }
+    }
+    return null
+  }).filter((item): item is NonNullable<typeof item> => item !== null)
+
+  const handleCreate = (name: string, iconName: string) => {
+    addCustomGroup({
+      id: `custom-${Date.now()}`,
+      displayName: name,
+      iconName,
+    })
+    setShowModal(false)
+  }
 
   return (
     <>
@@ -68,23 +87,53 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2">
-          {groups.map(({ id, name, Icon }) => (
-            <NavLink
-              key={id}
-              to={`/group/${id}`}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={16} />
-              <span>{name}</span>
-            </NavLink>
+          {navItems.map(({ id, name, Icon }, idx) => (
+            <div key={id} className="group/nav-row flex items-stretch">
+              <NavLink
+                to={`/group/${id}`}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex flex-1 items-center gap-3 pl-4 pr-2 py-2.5 text-sm transition-colors min-w-0 ${
+                    isActive
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <Icon size={16} className="flex-shrink-0" />
+                <span className="truncate">{name}</span>
+              </NavLink>
+
+              {/* Reorder buttons — always visible on mobile, hover-only on desktop */}
+              <div className="flex flex-col justify-center px-0.5 flex sm:hidden sm:group-hover/nav-row:flex">
+                <button
+                  onClick={() => moveGroupUp(id)}
+                  disabled={idx === 0}
+                  className="p-0.5 text-gray-600 hover:text-gray-200 disabled:opacity-20 transition-colors"
+                  aria-label={`Move ${name} up`}
+                >
+                  <ChevronUp size={11} />
+                </button>
+                <button
+                  onClick={() => moveGroupDown(id)}
+                  disabled={idx === navItems.length - 1}
+                  className="p-0.5 text-gray-600 hover:text-gray-200 disabled:opacity-20 transition-colors"
+                  aria-label={`Move ${name} down`}
+                >
+                  <ChevronDown size={11} />
+                </button>
+              </div>
+            </div>
           ))}
+
+          {/* New Group button */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors mt-1 border-t border-gray-800"
+          >
+            <Plus size={16} />
+            <span>New Group</span>
+          </button>
         </nav>
 
         <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between">
@@ -101,6 +150,13 @@ export function Sidebar() {
           </button>
         </div>
       </aside>
+
+      {showModal && (
+        <CreateGroupModal
+          onClose={() => setShowModal(false)}
+          onConfirm={handleCreate}
+        />
+      )}
     </>
   )
 }

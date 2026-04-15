@@ -10,7 +10,7 @@ interface PinModalProps {
 
 export function PinModal({ isOpen, title, onConfirm, onCancel }: PinModalProps) {
   const [digits, setDigits] = useState<string[]>([])
-  const [shake, setShake] = useState(false)
+  const [shake] = useState(false)
 
   // Reset digits when modal closes
   useEffect(() => {

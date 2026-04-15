@@ -266,4 +266,10 @@ export const groups: GroupConfig[] = [
       { deviceId: '1297', label: 'Water Is On', tileType: 'connector' },
     ],
   },
+  {
+    id: 'other',
+    displayName: 'Other',
+    icon: 'LayoutGrid',
+    tiles: [], // populated dynamically at runtime from unclaimed devices
+  },
 ]
