@@ -175,7 +175,10 @@ function EditOverlay({
   const available = allNames.filter((g) => g.id !== groupId && g.id !== 'other')
 
   return (
-    <div className="absolute inset-0 rounded-xl bg-black/60 z-10 flex items-center justify-center gap-2 p-2">
+    <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col items-center justify-center gap-2 p-2">
+      <p className="text-white font-semibold text-xs text-center leading-tight px-1 drop-shadow w-full truncate">
+        {tile.label}
+      </p>
       <div className="flex gap-2 flex-wrap justify-center">
         {canRemove && (
           <button
