@@ -175,25 +175,27 @@ function EditOverlay({
   const available = allNames.filter((g) => g.id !== groupId && g.id !== 'other')
 
   return (
-    <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col items-center justify-center gap-2 p-2">
-      <p className="text-white font-semibold text-xs text-center leading-tight px-1 drop-shadow w-full truncate">
+    <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1 overflow-hidden">
+      {/* Device name — always pinned at top */}
+      <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0">
         {tile.label}
       </p>
-      <div className="flex gap-2 flex-wrap justify-center">
+      {/* Action buttons — centered in remaining space */}
+      <div className="flex gap-1 flex-wrap justify-center items-center flex-1">
         {canRemove && (
           <button
             onClick={handleRemove}
-            className="flex items-center gap-1 px-2 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium min-h-[32px]"
+            className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] bg-red-600 hover:bg-red-500 text-white rounded-md font-medium"
           >
-            <X size={12} /> Remove
+            <X size={10} /> Remove
           </button>
         )}
         <div className="relative">
           <button
             onClick={() => { setShowGroupMenu((v) => !v); setShowTypeMenu(false) }}
-            className="flex items-center gap-1 px-2 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium min-h-[32px]"
+            className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium"
           >
-            <Plus size={12} /> Add to <ChevronDown size={10} />
+            <Plus size={10} /> Add to <ChevronDown size={9} />
           </button>
           {showGroupMenu && (
             <div
@@ -216,9 +218,9 @@ function EditOverlay({
           <div className="relative">
             <button
               onClick={() => { setShowTypeMenu((v) => !v); setShowGroupMenu(false) }}
-              className="flex items-center gap-1 px-2 py-1.5 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium min-h-[32px]"
+              className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] bg-amber-600 hover:bg-amber-500 text-white rounded-md font-medium"
             >
-              <Sliders size={12} /> Type <ChevronDown size={10} />
+              <Sliders size={10} /> Type <ChevronDown size={9} />
             </button>
             {showTypeMenu && (
               <div
