@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Pencil, X, Plus, ChevronDown } from 'lucide-react'
+import { Pencil, X, Plus, ChevronDown, UserPlus } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import type { TileConfig } from '../types'
 import { autoTileType } from '../utils/autoTileType'
 import { showToast } from '../utils/toast'
+import { AddDeviceModal } from './AddDeviceModal'
 import { SwitchTile } from './tiles/SwitchTile'
 import { DimmerTile } from './tiles/DimmerTile'
 import { RGBWTile } from './tiles/RGBWTile'
@@ -178,11 +179,13 @@ function GroupHeader({
   subtitle,
   editMode,
   onToggleEdit,
+  onAddDevice,
 }: {
   title: string
   subtitle?: string
   editMode: boolean
   onToggleEdit: () => void
+  onAddDevice?: () => void
 }) {
   return (
     <div className="flex items-start justify-between mb-4 gap-3">
@@ -190,18 +193,28 @@ function GroupHeader({
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
         {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
-      <button
-        onClick={onToggleEdit}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors flex-shrink-0 ${
-          editMode
-            ? 'bg-blue-600 text-white hover:bg-blue-700'
-            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-        }`}
-        aria-pressed={editMode}
-      >
-        <Pencil size={14} />
-        {editMode ? 'Done' : 'Edit'}
-      </button>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {editMode && onAddDevice && (
+          <button
+            onClick={onAddDevice}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
+          >
+            <UserPlus size={14} /> Add Device
+          </button>
+        )}
+        <button
+          onClick={onToggleEdit}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+            editMode
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+          aria-pressed={editMode}
+        >
+          <Pencil size={14} />
+          {editMode ? 'Done' : 'Edit'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -295,7 +308,8 @@ function OtherGroupPage() {
 }
 
 function StaticGroupPage({ groupId }: Props) {
-  const [editMode, setEditMode] = useState(false)
+  const [editMode, setEditMode]         = useState(false)
+  const [showAddDevice, setShowAddDevice] = useState(false)
   const numCols         = useGridColumns()
   const devices         = useDeviceStore((s) => s.devices)
   const groupAdditions  = useGroupStore((s) => s.groupAdditions)
@@ -329,12 +343,17 @@ function StaticGroupPage({ groupId }: Props) {
   const restTiles     = resolvedTiles.filter((t) => !PINNED_TYPES.has(t.tileType))
   const tilesOrNull   = sortColumnMajor(restTiles, numCols)
 
+  const currentDeviceIds = new Set(
+    resolvedTiles.map((t) => t.deviceId).filter((id): id is string => !!id),
+  )
+
   return (
     <div className="p-4 sm:p-6">
       <GroupHeader
         title={staticGroup.displayName}
         editMode={editMode}
         onToggleEdit={() => setEditMode((v) => !v)}
+        onAddDevice={() => setShowAddDevice(true)}
       />
       {pinnedTiles.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3">
@@ -354,12 +373,20 @@ function StaticGroupPage({ groupId }: Props) {
           )}
         </div>
       )}
+      {showAddDevice && (
+        <AddDeviceModal
+          groupId={groupId}
+          currentDeviceIds={currentDeviceIds}
+          onClose={() => setShowAddDevice(false)}
+        />
+      )}
     </div>
   )
 }
 
 function CustomGroupPage({ groupId }: Props) {
-  const [editMode, setEditMode] = useState(false)
+  const [editMode, setEditMode]           = useState(false)
+  const [showAddDevice, setShowAddDevice] = useState(false)
   const numCols        = useGridColumns()
   const devices        = useDeviceStore((s) => s.devices)
   const customGroups   = useGroupStore((s) => s.customGroups)
@@ -381,15 +408,17 @@ function CustomGroupPage({ groupId }: Props) {
     return [{ deviceId: id, label: device.label, tileType: autoTileType(device) } as TileConfig]
   })
 
+  const currentDeviceIds = new Set(addedIds)
   const tilesOrNull = sortColumnMajor(tiles, numCols)
 
   return (
     <div className="p-4 sm:p-6">
       <GroupHeader
         title={customGroup.displayName}
-        subtitle={tiles.length === 0 ? 'Use Edit mode on any group to add devices here.' : undefined}
+        subtitle={tiles.length === 0 ? 'Click Edit then Add Device to populate this group.' : undefined}
         editMode={editMode}
         onToggleEdit={() => setEditMode((v) => !v)}
+        onAddDevice={() => setShowAddDevice(true)}
       />
       {tilesOrNull.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -401,6 +430,13 @@ function CustomGroupPage({ groupId }: Props) {
             ),
           )}
         </div>
+      )}
+      {showAddDevice && (
+        <AddDeviceModal
+          groupId={groupId}
+          currentDeviceIds={currentDeviceIds}
+          onClose={() => setShowAddDevice(false)}
+        />
       )}
     </div>
   )
