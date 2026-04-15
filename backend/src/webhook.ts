@@ -1,0 +1,84 @@
+import type { FastifyInstance } from 'fastify';
+import { updateDeviceAttribute } from './cache.js';
+import { addClient, removeClient, broadcast } from './sse.js';
+import type { SSEEvent } from './types.js';
+
+interface HubitatEventContent {
+  deviceId?: string;
+  displayName?: string;
+  name?: string;
+  value?: string | number | null;
+  source?: string;
+}
+
+interface HubitatWebhookBody {
+  content?: HubitatEventContent;
+}
+
+export async function webhookRoutes(fastify: FastifyInstance): Promise<void> {
+
+  // POST /api/webhook — receives Hubitat push events
+  fastify.post<{ Body: HubitatWebhookBody }>(
+    '/api/webhook',
+    async (req, reply) => {
+      const content = req.body?.content;
+      if (!content) return reply.send({ ok: true });
+
+      const { deviceId, name, value, source } = content;
+
+      // Handle HSM status events (source may differ)
+      if (name === 'hsmStatus' && value !== undefined) {
+        const event: SSEEvent = {
+          deviceId: 'hsm',
+          attribute: 'hsmStatus',
+          value: value ?? null,
+          timestamp: Date.now(),
+        };
+        broadcast(event);
+        return reply.send({ ok: true });
+      }
+
+      // Handle mode change events
+      if (name === 'mode' && value !== undefined) {
+        const event: SSEEvent = {
+          deviceId: 'mode',
+          attribute: 'mode',
+          value: value ?? null,
+          timestamp: Date.now(),
+        };
+        broadcast(event);
+        return reply.send({ ok: true });
+      }
+
+      // Regular device events
+      if (!deviceId || !name || value === undefined) {
+        return reply.send({ ok: true });
+      }
+
+      updateDeviceAttribute(deviceId, name, value);
+
+      const event: SSEEvent = {
+        deviceId,
+        attribute: name,
+        value: value ?? null,
+        timestamp: Date.now(),
+      };
+      broadcast(event);
+
+      return reply.send({ ok: true });
+    }
+  );
+
+  // GET /api/events — SSE streaming endpoint
+  fastify.get('/api/events', async (req, reply) => {
+    const clientId = crypto.randomUUID();
+    addClient(clientId, reply);
+
+    req.raw.on('close', () => {
+      removeClient(clientId);
+    });
+
+    // addClient handles headers and keeps connection open via reply.hijack()
+    // No explicit return needed — connection is kept alive by reply.raw
+  });
+}

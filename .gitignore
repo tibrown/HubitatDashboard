@@ -1,0 +1,10 @@
+node_modules/
+dist/
+backend/config.json
+*.local
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.dashboard-pids.json

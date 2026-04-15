@@ -1,0 +1,8 @@
+{
+  "hubIP": "192.168.1.xxx",
+  "makerAppId": "123",
+  "accessToken": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "backendPort": 3001,
+  "pinHash": "$2b$10$...<run: node -e \"require('bcryptjs').hash('1234',10).then(console.log)\">",
+  "postUrl": "http://<THIS_SERVER_IP>:3001/api/webhook"
+}

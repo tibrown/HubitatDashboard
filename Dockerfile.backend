@@ -1,0 +1,11 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY backend/package*.json ./
+RUN npm ci --omit=dev
+COPY backend/ ./
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app ./
+EXPOSE 3001
+CMD ["node", "--import", "tsx/esm", "src/server.ts"]
