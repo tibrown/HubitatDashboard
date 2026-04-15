@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import { Power, Loader2 } from 'lucide-react'
 import { useDeviceAttribute, useIsPending } from '../../store/deviceStore'
 import { useCommand } from '../../hooks/useCommand'
+import { useCollapsed } from '../../hooks/useCollapsed'
+import { CollapsibleCard } from './CollapsibleCard'
 
 interface Props { deviceId: string; label: string }
 
@@ -32,6 +34,7 @@ export function RGBWTile({ deviceId, label }: Props) {
   const ct = Number(useDeviceAttribute(deviceId, 'colorTemperature') ?? 4000)
   const isPending = useIsPending(deviceId)
   const [execute] = useCommand()
+  const [collapsed, toggleCollapsed] = useCollapsed(`rgbw-${deviceId}`)
 
   const sendLevel = useRef(debounceRef((v) => execute({ deviceId, command: 'setLevel', value: String(v) }), 400)).current
   const sendHue = useRef(debounceRef((v) => execute({ deviceId, command: 'setHue', value: String(v) }), 400)).current
@@ -41,22 +44,29 @@ export function RGBWTile({ deviceId, label }: Props) {
   const isOn = switchState === 'on'
   const swatchColor = hslToHex(hue, sat)
 
+  const header = (
+    <div className="flex items-center gap-2 min-w-0">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate flex-1">{label}</p>
+      <div className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ backgroundColor: swatchColor }} />
+      <button
+        onClick={(e) => { e.stopPropagation(); execute({ deviceId, command: isOn ? 'off' : 'on', optimisticAttribute: 'switch', optimisticValue: isOn ? 'off' : 'on' }) }}
+        disabled={isPending}
+        className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex-shrink-0 ${isOn ? 'bg-purple-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+      >
+        {isPending ? <Loader2 size={10} className="animate-spin" /> : <Power size={10} />}
+        {isOn ? 'On' : 'Off'}
+      </button>
+    </div>
+  )
+
   return (
-    <div className={`rounded-xl border p-4 shadow-sm bg-white dark:bg-gray-800 col-span-2 ${isOn ? 'border-purple-400' : 'border-gray-200 dark:border-gray-700'}`}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{label}</p>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full border border-gray-300" style={{ backgroundColor: swatchColor }} />
-          <button
-            onClick={() => execute({ deviceId, command: isOn ? 'off' : 'on', optimisticAttribute: 'switch', optimisticValue: isOn ? 'off' : 'on' })}
-            disabled={isPending}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50 ${isOn ? 'bg-purple-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
-          >
-            {isPending ? <Loader2 size={12} className="animate-spin" /> : <Power size={12} />}
-            {isOn ? 'On' : 'Off'}
-          </button>
-        </div>
-      </div>
+    <CollapsibleCard
+      collapsed={collapsed}
+      onToggle={toggleCollapsed}
+      header={header}
+      borderClass={isOn ? 'border-purple-400' : 'border-gray-200 dark:border-gray-700'}
+      className="col-span-2"
+    >
       <div className="space-y-2">
         {[
           { label: 'Brightness', value: level, min: 0, max: 100, unit: '%', send: sendLevel },
@@ -79,6 +89,7 @@ export function RGBWTile({ deviceId, label }: Props) {
           <span className="text-xs text-gray-400 w-8 text-right">{ct}K</span>
         </div>
       </div>
-    </div>
+    </CollapsibleCard>
   )
 }
+

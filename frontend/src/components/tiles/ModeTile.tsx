@@ -3,6 +3,8 @@ import { Clock, Loader2 } from 'lucide-react'
 import { useCurrentMode, useDeviceStore } from '../../store/deviceStore'
 import { PinModal } from '../PinModal'
 import { showToast } from '../../utils/toast'
+import { useCollapsed } from '../../hooks/useCollapsed'
+import { CollapsibleCard } from './CollapsibleCard'
 
 interface HubMode { id: string; name: string; active: boolean }
 
@@ -14,6 +16,7 @@ export function ModeTile() {
   const [pendingModeId, setPendingModeId] = useState<string | null>(null)
   const [pendingModeName, setPendingModeName] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [collapsed, toggleCollapsed] = useCollapsed('mode-tile')
 
   useEffect(() => {
     fetch('/api/modes')
@@ -32,7 +35,6 @@ export function ModeTile() {
     setPinOpen(false)
     if (!pendingModeId || !pendingModeName) return
     setLoading(true)
-    // Optimistic update
     applyEvent({ deviceId: 'mode', attribute: 'mode', value: pendingModeName, timestamp: Date.now() })
     try {
       const res = await fetch(`/api/modes/${pendingModeId}`, {
@@ -52,29 +54,40 @@ export function ModeTile() {
     }
   }
 
+  const header = (
+    <div className="flex items-center gap-2 min-w-0">
+      <Clock size={14} className="text-gray-400 flex-shrink-0" />
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 flex-shrink-0">Hub Mode</p>
+      <span className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{currentMode}</span>
+      {loading && <Loader2 size={12} className="animate-spin text-gray-400 flex-shrink-0" />}
+    </div>
+  )
+
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm bg-white dark:bg-gray-800 col-span-2">
-      <div className="flex items-center gap-2 mb-3">
-        <Clock size={16} className="text-gray-400" />
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Hub Mode</p>
-        {loading && <Loader2 size={12} className="animate-spin text-gray-400 ml-auto" />}
-      </div>
-      <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">{currentMode}</p>
-      <div className="grid grid-cols-3 gap-1.5">
-        {modes.map((mode) => (
-          <button key={mode.id} onClick={() => handleModeSelect(mode)} disabled={loading}
-            className={`py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 ${
-              mode.name === currentMode
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}>
-            {mode.name}
-          </button>
-        ))}
-      </div>
+    <>
+      <CollapsibleCard
+        collapsed={collapsed}
+        onToggle={toggleCollapsed}
+        header={header}
+        className="col-span-2"
+      >
+        <div className="grid grid-cols-3 gap-1.5">
+          {modes.map((mode) => (
+            <button key={mode.id} onClick={() => handleModeSelect(mode)} disabled={loading}
+              className={`py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 disabled:opacity-50 ${
+                mode.name === currentMode
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}>
+              {mode.name}
+            </button>
+          ))}
+        </div>
+      </CollapsibleCard>
       <PinModal isOpen={pinOpen} title={`Set Mode: ${pendingModeName}`}
         onConfirm={handlePinConfirm}
         onCancel={() => { setPinOpen(false); setPendingModeId(null) }} />
-    </div>
+    </>
   )
 }
+
