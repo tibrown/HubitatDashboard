@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Pencil, X, Plus, ChevronDown, UserPlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Pencil, X, Plus, ChevronDown, UserPlus, ChevronUp, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
@@ -7,6 +8,8 @@ import type { TileConfig } from '../types'
 import { autoTileType } from '../utils/autoTileType'
 import { showToast } from '../utils/toast'
 import { AddDeviceModal } from './AddDeviceModal'
+import { CreateGroupModal } from './CreateGroupModal'
+import { ICON_MAP } from '../utils/iconMap'
 import { SwitchTile } from './tiles/SwitchTile'
 import { DimmerTile } from './tiles/DimmerTile'
 import { RGBWTile } from './tiles/RGBWTile'
@@ -180,12 +183,14 @@ function GroupHeader({
   editMode,
   onToggleEdit,
   onAddDevice,
+  onAddSubGroup,
 }: {
   title: string
   subtitle?: string
   editMode: boolean
   onToggleEdit: () => void
   onAddDevice?: () => void
+  onAddSubGroup?: () => void
 }) {
   return (
     <div className="flex items-start justify-between mb-4 gap-3">
@@ -194,6 +199,14 @@ function GroupHeader({
         {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
+        {editMode && onAddSubGroup && (
+          <button
+            onClick={onAddSubGroup}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors bg-purple-600 text-white hover:bg-purple-700"
+          >
+            <FolderPlus size={14} /> Sub-group
+          </button>
+        )}
         {editMode && onAddDevice && (
           <button
             onClick={onAddDevice}
@@ -385,12 +398,19 @@ function StaticGroupPage({ groupId }: Props) {
 }
 
 function CustomGroupPage({ groupId }: Props) {
-  const [editMode, setEditMode]           = useState(false)
-  const [showAddDevice, setShowAddDevice] = useState(false)
-  const numCols        = useGridColumns()
-  const devices        = useDeviceStore((s) => s.devices)
-  const customGroups   = useGroupStore((s) => s.customGroups)
-  const groupAdditions = useGroupStore((s) => s.groupAdditions)
+  const [editMode, setEditMode]             = useState(false)
+  const [showAddDevice, setShowAddDevice]   = useState(false)
+  const [showAddSubGroup, setShowAddSubGroup] = useState(false)
+  const navigate = useNavigate()
+  const numCols          = useGridColumns()
+  const devices          = useDeviceStore((s) => s.devices)
+  const customGroups     = useGroupStore((s) => s.customGroups)
+  const groupAdditions   = useGroupStore((s) => s.groupAdditions)
+  const childGroupOrder  = useGroupStore((s) => s.childGroupOrder)
+  const addCustomGroup   = useGroupStore((s) => s.addCustomGroup)
+  const removeCustomGroup = useGroupStore((s) => s.removeCustomGroup)
+  const moveSubGroupUp   = useGroupStore((s) => s.moveSubGroupUp)
+  const moveSubGroupDown = useGroupStore((s) => s.moveSubGroupDown)
 
   const customGroup = customGroups.find((g) => g.id === groupId)
   if (!customGroup) {
@@ -400,6 +420,16 @@ function CustomGroupPage({ groupId }: Props) {
       </div>
     )
   }
+
+  const parentGroup = customGroup.parentId
+    ? customGroups.find((g) => g.id === customGroup.parentId)
+    : undefined
+
+  // Sub-groups of this group, in order
+  const childIds = childGroupOrder[groupId] ?? []
+  const childGroups = childIds
+    .map((id) => customGroups.find((g) => g.id === id))
+    .filter((g): g is NonNullable<typeof g> => !!g)
 
   const addedIds = groupAdditions[groupId] ?? []
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
@@ -411,31 +441,139 @@ function CustomGroupPage({ groupId }: Props) {
   const currentDeviceIds = new Set(addedIds)
   const tilesOrNull = sortColumnMajor(tiles, numCols)
 
+  const handleCreateSubGroup = (name: string, iconName: string) => {
+    addCustomGroup(
+      { id: `custom-${Date.now()}`, displayName: name, iconName, parentId: groupId },
+      groupId,
+    )
+    setShowAddSubGroup(false)
+    showToast(`Sub-group "${name}" created`)
+  }
+
+  const handleDeleteSubGroup = (childId: string, childName: string) => {
+    removeCustomGroup(childId)
+    showToast(`Removed "${childName}"`)
+  }
+
   return (
     <div className="p-4 sm:p-6">
+      {/* Breadcrumb when nested */}
+      {parentGroup && (
+        <button
+          onClick={() => navigate(`/group/${parentGroup.id}`)}
+          className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-3 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          {parentGroup.displayName}
+        </button>
+      )}
+
       <GroupHeader
         title={customGroup.displayName}
-        subtitle={tiles.length === 0 ? 'Click Edit then Add Device to populate this group.' : undefined}
+        subtitle={tiles.length === 0 && childGroups.length === 0
+          ? 'Click Edit then Add Device or Add Sub-group to populate this group.'
+          : undefined}
         editMode={editMode}
         onToggleEdit={() => setEditMode((v) => !v)}
         onAddDevice={() => setShowAddDevice(true)}
+        onAddSubGroup={() => setShowAddSubGroup(true)}
       />
-      {tilesOrNull.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {tilesOrNull.map((tile, i) =>
-            tile ? (
-              <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
-            ) : (
-              <div key={`empty-${i}`} aria-hidden="true" />
-            ),
-          )}
+
+      {/* Sub-group cards */}
+      {childGroups.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+            Sub-groups
+          </p>
+          <div className="flex flex-col gap-1">
+            {childGroups.map((child, idx) => {
+              const Icon = ICON_MAP[child.iconName] ?? ICON_MAP['Home']
+              const childTileCount = (groupAdditions[child.id] ?? []).length
+              const grandchildCount = (childGroupOrder[child.id] ?? []).length
+              return (
+                <div key={child.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/group/${child.id}`)}
+                    className="flex flex-1 items-center gap-3 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors text-left"
+                  >
+                    <Icon size={16} className="flex-shrink-0 text-blue-500 dark:text-blue-400" />
+                    <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {child.displayName}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                      {childTileCount > 0 && `${childTileCount} device${childTileCount !== 1 ? 's' : ''}`}
+                      {grandchildCount > 0 && ` · ${grandchildCount} sub-group${grandchildCount !== 1 ? 's' : ''}`}
+                    </span>
+                    <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
+                  </button>
+                  {editMode && (
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => moveSubGroupUp(groupId, child.id)}
+                        disabled={idx === 0}
+                        className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 transition-colors"
+                        aria-label="Move up"
+                      >
+                        <ChevronUp size={12} />
+                      </button>
+                      <button
+                        onClick={() => moveSubGroupDown(groupId, child.id)}
+                        disabled={idx === childGroups.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 transition-colors"
+                        aria-label="Move down"
+                      >
+                        <ChevronDown size={12} />
+                      </button>
+                    </div>
+                  )}
+                  {editMode && (
+                    <button
+                      onClick={() => handleDeleteSubGroup(child.id, child.displayName)}
+                      className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
+                      aria-label={`Delete ${child.displayName}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
+
+      {/* Device tiles */}
+      {tilesOrNull.length > 0 && (
+        <>
+          {childGroups.length > 0 && (
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+              Devices
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {tilesOrNull.map((tile, i) =>
+              tile ? (
+                <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+              ) : (
+                <div key={`empty-${i}`} aria-hidden="true" />
+              ),
+            )}
+          </div>
+        </>
+      )}
+
       {showAddDevice && (
         <AddDeviceModal
           groupId={groupId}
           currentDeviceIds={currentDeviceIds}
           onClose={() => setShowAddDevice(false)}
+        />
+      )}
+      {showAddSubGroup && (
+        <CreateGroupModal
+          title="New Sub-group"
+          onClose={() => setShowAddSubGroup(false)}
+          onConfirm={handleCreateSubGroup}
         />
       )}
     </div>

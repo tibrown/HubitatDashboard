@@ -6,6 +6,8 @@ export interface CustomGroup {
   id: string
   displayName: string
   iconName: string
+  /** undefined = top-level group; set = nested sub-group of that parent */
+  parentId?: string
 }
 
 interface GroupStore {
@@ -15,16 +17,20 @@ interface GroupStore {
   groupAdditions: Record<string, string[]>
   /** Device IDs explicitly removed from a static group. */
   groupExclusions: Record<string, string[]>
-  /** Ordered list of ALL group IDs (static + custom). */
+  /** Ordered list of top-level group IDs (static + top-level custom). */
   groupOrder: string[]
+  /** Ordered sub-group IDs per parent: childGroupOrder[parentId] = [childId, ...] */
+  childGroupOrder: Record<string, string[]>
 
-  addCustomGroup: (group: CustomGroup) => void
+  addCustomGroup: (group: CustomGroup, parentId?: string) => void
   removeCustomGroup: (id: string) => void
   addDeviceToGroup: (groupId: string, deviceId: string) => void
   /** Returns false if deviceId would have no remaining group; removal is blocked. */
   removeDeviceFromGroup: (groupId: string, deviceId: string) => boolean
   moveGroupUp: (id: string) => void
   moveGroupDown: (id: string) => void
+  moveSubGroupUp: (parentId: string, id: string) => void
+  moveSubGroupDown: (parentId: string, id: string) => void
 }
 
 const STATIC_GROUP_IDS = staticGroups.map((g) => g.id)
@@ -58,21 +64,55 @@ export const useGroupStore = create<GroupStore>()(
       groupAdditions: {},
       groupExclusions: {},
       groupOrder: STATIC_GROUP_IDS,
+      childGroupOrder: {},
 
-      addCustomGroup: (group) =>
-        set((s) => ({
-          customGroups: [...s.customGroups, group],
-          groupOrder: [...s.groupOrder, group.id],
-        })),
+      addCustomGroup: (group, parentId) =>
+        set((s) => {
+          const groupWithParent = parentId ? { ...group, parentId } : group
+          if (parentId) {
+            const existing = s.childGroupOrder[parentId] ?? []
+            return {
+              customGroups: [...s.customGroups, groupWithParent],
+              childGroupOrder: { ...s.childGroupOrder, [parentId]: [...existing, group.id] },
+            }
+          }
+          return {
+            customGroups: [...s.customGroups, groupWithParent],
+            groupOrder: [...s.groupOrder, group.id],
+          }
+        }),
 
       removeCustomGroup: (id) =>
         set((s) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { [id]: _removed, ...additions } = s.groupAdditions
+          // Collect this group and all its descendants
+          const toRemove = new Set<string>()
+          const collect = (gid: string) => {
+            toRemove.add(gid)
+            const children = s.childGroupOrder[gid] ?? []
+            children.forEach(collect)
+          }
+          collect(id)
+
+          // Remove from parent's childGroupOrder if it's a sub-group
+          const group = s.customGroups.find((g) => g.id === id)
+          const updatedChildGroupOrder = { ...s.childGroupOrder }
+          if (group?.parentId) {
+            updatedChildGroupOrder[group.parentId] = (updatedChildGroupOrder[group.parentId] ?? [])
+              .filter((cid) => cid !== id)
+          }
+          // Also remove all removed groups from childGroupOrder
+          for (const rid of toRemove) {
+            delete updatedChildGroupOrder[rid]
+          }
+
+          const updatedAdditions = { ...s.groupAdditions }
+          for (const rid of toRemove) delete updatedAdditions[rid]
+
           return {
-            customGroups: s.customGroups.filter((g) => g.id !== id),
-            groupOrder: s.groupOrder.filter((gId) => gId !== id),
-            groupAdditions: additions,
+            customGroups: s.customGroups.filter((g) => !toRemove.has(g.id)),
+            groupOrder: s.groupOrder.filter((gId) => !toRemove.has(gId)),
+            groupAdditions: updatedAdditions,
+            childGroupOrder: updatedChildGroupOrder,
           }
         }),
 
@@ -125,6 +165,24 @@ export const useGroupStore = create<GroupStore>()(
           if (idx < 0 || idx >= order.length - 1) return {}
           ;[order[idx + 1], order[idx]] = [order[idx], order[idx + 1]]
           return { groupOrder: order }
+        }),
+
+      moveSubGroupUp: (parentId, id) =>
+        set((s) => {
+          const order = [...(s.childGroupOrder[parentId] ?? [])]
+          const idx = order.indexOf(id)
+          if (idx <= 0) return {}
+          ;[order[idx - 1], order[idx]] = [order[idx], order[idx - 1]]
+          return { childGroupOrder: { ...s.childGroupOrder, [parentId]: order } }
+        }),
+
+      moveSubGroupDown: (parentId, id) =>
+        set((s) => {
+          const order = [...(s.childGroupOrder[parentId] ?? [])]
+          const idx = order.indexOf(id)
+          if (idx < 0 || idx >= order.length - 1) return {}
+          ;[order[idx + 1], order[idx]] = [order[idx], order[idx + 1]]
+          return { childGroupOrder: { ...s.childGroupOrder, [parentId]: order } }
         }),
     }),
     {

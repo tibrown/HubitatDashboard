@@ -5,9 +5,10 @@ import { ICON_MAP, CUSTOM_ICON_NAMES } from '../utils/iconMap'
 interface Props {
   onClose: () => void
   onConfirm: (name: string, iconName: string) => void
+  title?: string
 }
 
-export function CreateGroupModal({ onClose, onConfirm }: Props) {
+export function CreateGroupModal({ onClose, onConfirm, title = 'New Group' }: Props) {
   const [name, setName] = useState('')
   const [selectedIcon, setSelectedIcon] = useState<string>('Home')
 
@@ -25,7 +26,7 @@ export function CreateGroupModal({ onClose, onConfirm }: Props) {
     >
       <div className="bg-white dark:bg-gray-800 w-full sm:max-w-sm rounded-t-2xl sm:rounded-xl shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New Group</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button
             onClick={onClose}
             className="p-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"

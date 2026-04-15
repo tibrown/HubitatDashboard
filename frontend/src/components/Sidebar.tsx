@@ -30,8 +30,9 @@ export function Sidebar() {
   const moveGroupDown  = useGroupStore((s) => s.moveGroupDown)
   const addCustomGroup = useGroupStore((s) => s.addCustomGroup)
 
-  // Build ordered nav items from groupOrder
-  const navItems = groupOrder.map((id) => {
+  // Build ordered nav items from groupOrder (top-level only — sub-groups excluded)
+  const subGroupIds = new Set(customGroups.filter((g) => g.parentId).map((g) => g.id))
+  const navItems = groupOrder.filter((id) => !subGroupIds.has(id)).map((id) => {
     const staticName = STATIC_NAME_MAP[id]
     if (staticName) {
       const iconName = staticGroupConfigs.find((g) => g.id === id)?.icon ?? 'LayoutGrid'
