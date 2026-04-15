@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight, Sliders } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
-import type { TileConfig } from '../types'
-import { autoTileType } from '../utils/autoTileType'
+import type { TileConfig, TileType } from '../types'
+import { autoTileType, availableTileTypes, TILE_TYPE_LABELS } from '../utils/autoTileType'
 import { showToast } from '../utils/toast'
 import { AddDeviceModal } from './AddDeviceModal'
 import { CreateGroupModal } from './CreateGroupModal'
@@ -135,13 +135,22 @@ function EditOverlay({
   groupId: string
   isOther: boolean
 }) {
-  const [showMenu, setShowMenu] = useState(false)
-  const allNames          = useAllGroupNames()
-  const addDeviceToGroup  = useGroupStore((s) => s.addDeviceToGroup)
-  const removeFn          = useGroupStore((s) => s.removeDeviceFromGroup)
+  const [showGroupMenu, setShowGroupMenu] = useState(false)
+  const [showTypeMenu, setShowTypeMenu]   = useState(false)
+  const allNames             = useAllGroupNames()
+  const addDeviceToGroup     = useGroupStore((s) => s.addDeviceToGroup)
+  const removeFn             = useGroupStore((s) => s.removeDeviceFromGroup)
+  const setTileTypeOverride  = useGroupStore((s) => s.setTileTypeOverride)
+  const tileTypeOverrides    = useGroupStore((s) => s.tileTypeOverrides)
+  const devices              = useDeviceStore((s) => s.devices)
 
   const deviceId = tile.deviceId
   if (!deviceId) return null // special tiles (hsm, mode) can't be moved
+
+  const device        = devices[deviceId]
+  const availTypes    = device ? availableTileTypes(device) : []
+  const currentType   = tileTypeOverrides[deviceId] ?? tile.tileType
+  const showTypePicker = availTypes.length > 1
 
   const canRemove = !isOther
 
@@ -154,7 +163,13 @@ function EditOverlay({
   const handleAddTo = (targetId: string, targetName: string) => {
     addDeviceToGroup(targetId, deviceId)
     showToast(`Added to ${targetName}`)
-    setShowMenu(false)
+    setShowGroupMenu(false)
+  }
+
+  const handleSetType = (type: TileType) => {
+    setTileTypeOverride(deviceId, type)
+    showToast(`Tile type set to ${TILE_TYPE_LABELS[type] ?? type}`)
+    setShowTypeMenu(false)
   }
 
   const available = allNames.filter((g) => g.id !== groupId && g.id !== 'other')
@@ -172,12 +187,12 @@ function EditOverlay({
         )}
         <div className="relative">
           <button
-            onClick={() => setShowMenu((v) => !v)}
+            onClick={() => { setShowGroupMenu((v) => !v); setShowTypeMenu(false) }}
             className="flex items-center gap-1 px-2 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium min-h-[32px]"
           >
             <Plus size={12} /> Add to <ChevronDown size={10} />
           </button>
-          {showMenu && (
+          {showGroupMenu && (
             <div
               className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[140px] max-h-48 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
@@ -194,6 +209,37 @@ function EditOverlay({
             </div>
           )}
         </div>
+        {showTypePicker && (
+          <div className="relative">
+            <button
+              onClick={() => { setShowTypeMenu((v) => !v); setShowGroupMenu(false) }}
+              className="flex items-center gap-1 px-2 py-1.5 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium min-h-[32px]"
+            >
+              <Sliders size={12} /> Type <ChevronDown size={10} />
+            </button>
+            {showTypeMenu && (
+              <div
+                className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[130px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {availTypes.map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => handleSetType(type)}
+                    className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg flex items-center justify-between gap-2 ${
+                      type === currentType
+                        ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {TILE_TYPE_LABELS[type] ?? type}
+                    {type === currentType && <span className="text-amber-500 text-xs">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -279,10 +325,11 @@ function TileWrapper({
 
 function OtherGroupPage() {
   const [editMode, setEditMode] = useState(false)
-  const numCols      = useGridColumns()
-  const devices      = useDeviceStore((s) => s.devices)
+  const numCols         = useGridColumns()
+  const devices         = useDeviceStore((s) => s.devices)
   const groupAdditions  = useGroupStore((s) => s.groupAdditions)
   const groupExclusions = useGroupStore((s) => s.groupExclusions)
+  const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
 
   const claimed = useMemo(() => {
     const set = new Set<string>()
@@ -304,8 +351,8 @@ function OtherGroupPage() {
       Object.values(devices)
         .filter((d) => !claimed.has(d.id))
         .sort((a, b) => a.label.localeCompare(b.label))
-        .map((d) => ({ deviceId: d.id, label: d.label, tileType: autoTileType(d) })),
-    [devices, claimed],
+        .map((d) => ({ deviceId: d.id, label: d.label, tileType: tileTypeOverrides[d.id] ?? autoTileType(d) })),
+    [devices, claimed, tileTypeOverrides],
   )
 
   if (unclaimedTiles.length === 0) {
@@ -346,10 +393,11 @@ function OtherGroupPage() {
 function StaticGroupPage({ groupId }: Props) {
   const [editMode, setEditMode]         = useState(false)
   const [showAddDevice, setShowAddDevice] = useState(false)
-  const numCols         = useGridColumns()
-  const devices         = useDeviceStore((s) => s.devices)
-  const groupAdditions  = useGroupStore((s) => s.groupAdditions)
-  const groupExclusions = useGroupStore((s) => s.groupExclusions)
+  const numCols           = useGridColumns()
+  const devices           = useDeviceStore((s) => s.devices)
+  const groupAdditions    = useGroupStore((s) => s.groupAdditions)
+  const groupExclusions   = useGroupStore((s) => s.groupExclusions)
+  const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
 
   const staticGroup = staticGroups.find((g) => g.id === groupId)
   if (!staticGroup) {
@@ -361,9 +409,11 @@ function StaticGroupPage({ groupId }: Props) {
   }
 
   const exclusions = groupExclusions[groupId] ?? []
-  const baseTiles = staticGroup.tiles.filter(
-    (t) => !t.deviceId || !exclusions.includes(t.deviceId),
-  )
+  const baseTiles = staticGroup.tiles
+    .filter((t) => !t.deviceId || !exclusions.includes(t.deviceId))
+    .map((t) => t.deviceId && tileTypeOverrides[t.deviceId]
+      ? { ...t, tileType: tileTypeOverrides[t.deviceId] }
+      : t)
   const baseTileDeviceIds = new Set(baseTiles.map((t) => t.deviceId).filter(Boolean))
   const addedIds = groupAdditions[groupId] ?? []
   const addedTiles: TileConfig[] = addedIds
@@ -371,7 +421,7 @@ function StaticGroupPage({ groupId }: Props) {
     .flatMap((id) => {
       const device = devices[id]
       if (!device) return []
-      return [{ deviceId: id, label: device.label, tileType: autoTileType(device) } as TileConfig]
+      return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
     })
 
   const resolvedTiles = [...baseTiles, ...addedTiles]
@@ -425,12 +475,13 @@ function CustomGroupPage({ groupId }: Props) {
   const [showAddDevice, setShowAddDevice]   = useState(false)
   const [showAddSubGroup, setShowAddSubGroup] = useState(false)
   const navigate = useNavigate()
-  const numCols          = useGridColumns()
-  const devices          = useDeviceStore((s) => s.devices)
-  const customGroups     = useGroupStore((s) => s.customGroups)
-  const groupAdditions   = useGroupStore((s) => s.groupAdditions)
-  const childGroupOrder  = useGroupStore((s) => s.childGroupOrder)
-  const addCustomGroup   = useGroupStore((s) => s.addCustomGroup)
+  const numCols           = useGridColumns()
+  const devices           = useDeviceStore((s) => s.devices)
+  const customGroups      = useGroupStore((s) => s.customGroups)
+  const groupAdditions    = useGroupStore((s) => s.groupAdditions)
+  const childGroupOrder   = useGroupStore((s) => s.childGroupOrder)
+  const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
+  const addCustomGroup    = useGroupStore((s) => s.addCustomGroup)
   const removeCustomGroup = useGroupStore((s) => s.removeCustomGroup)
 
   const customGroup = customGroups.find((g) => g.id === groupId)
@@ -457,7 +508,7 @@ function CustomGroupPage({ groupId }: Props) {
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
     const device = devices[id]
     if (!device) return []
-    return [{ deviceId: id, label: device.label, tileType: autoTileType(device) } as TileConfig]
+    return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
   })
 
   const currentDeviceIds = new Set(addedIds)

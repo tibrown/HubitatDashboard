@@ -38,3 +38,39 @@ export function autoTileType(device: DeviceState): TileType {
   // Default — treat as a plain switch
   return 'switch'
 }
+
+/**
+ * Returns every TileType that a device is capable of rendering as.
+ * Used to populate the "Change Type" picker in edit mode.
+ */
+export function availableTileTypes(device: DeviceState): TileType[] {
+  const attrs = device.attributes
+  const cmds = device.commands ?? []
+  const types: TileType[] = []
+
+  if ('hue' in attrs || cmds.includes('setColor')) types.push('rgbw')
+  if ('level' in attrs && cmds.includes('setLevel') && 'switch' in attrs) types.push('dimmer')
+  if ('switch' in attrs) types.push('switch')
+  if ('lock' in attrs) types.push('lock')
+  if ('contact' in attrs) types.push('contact')
+  if ('motion' in attrs) types.push('motion')
+  if ('presence' in attrs) types.push('presence')
+  if ('power' in attrs) types.push('power-meter')
+  if ('temperature' in attrs) types.push('temperature')
+  if (cmds.includes('push')) types.push('button')
+
+  return types.length > 0 ? types : ['switch']
+}
+
+export const TILE_TYPE_LABELS: Record<string, string> = {
+  'switch':       'Switch',
+  'dimmer':       'Dimmer',
+  'rgbw':         'Color Light',
+  'lock':         'Lock',
+  'contact':      'Contact',
+  'motion':       'Motion',
+  'presence':     'Presence',
+  'power-meter':  'Power Meter',
+  'temperature':  'Temperature',
+  'button':       'Button',
+}

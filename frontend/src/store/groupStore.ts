@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { groups as staticGroups } from '../config/groups'
+import type { TileType } from '../types'
 
 export interface CustomGroup {
   id: string
@@ -21,6 +22,8 @@ interface GroupStore {
   groupOrder: string[]
   /** Ordered sub-group IDs per parent: childGroupOrder[parentId] = [childId, ...] */
   childGroupOrder: Record<string, string[]>
+  /** Per-device tile type overrides — user-selected type takes precedence over autoTileType. */
+  tileTypeOverrides: Record<string, TileType>
 
   addCustomGroup: (group: CustomGroup, parentId?: string) => void
   removeCustomGroup: (id: string) => void
@@ -31,6 +34,7 @@ interface GroupStore {
   moveGroupDown: (id: string) => void
   moveSubGroupUp: (parentId: string, id: string) => void
   moveSubGroupDown: (parentId: string, id: string) => void
+  setTileTypeOverride: (deviceId: string, tileType: TileType) => void
 }
 
 const STATIC_GROUP_IDS = staticGroups.map((g) => g.id)
@@ -65,6 +69,7 @@ export const useGroupStore = create<GroupStore>()(
       groupExclusions: {},
       groupOrder: STATIC_GROUP_IDS,
       childGroupOrder: {},
+      tileTypeOverrides: {},
 
       addCustomGroup: (group, parentId) =>
         set((s) => {
@@ -184,6 +189,11 @@ export const useGroupStore = create<GroupStore>()(
           ;[order[idx + 1], order[idx]] = [order[idx], order[idx + 1]]
           return { childGroupOrder: { ...s.childGroupOrder, [parentId]: order } }
         }),
+
+      setTileTypeOverride: (deviceId, tileType) =>
+        set((s) => ({
+          tileTypeOverrides: { ...s.tileTypeOverrides, [deviceId]: tileType },
+        })),
     }),
     {
       name: 'hubitat-group-store',
