@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, X, Plus, ChevronDown, UserPlus, ChevronUp, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react'
+import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
@@ -432,8 +432,6 @@ function CustomGroupPage({ groupId }: Props) {
   const childGroupOrder  = useGroupStore((s) => s.childGroupOrder)
   const addCustomGroup   = useGroupStore((s) => s.addCustomGroup)
   const removeCustomGroup = useGroupStore((s) => s.removeCustomGroup)
-  const moveSubGroupUp   = useGroupStore((s) => s.moveSubGroupUp)
-  const moveSubGroupDown = useGroupStore((s) => s.moveSubGroupDown)
 
   const customGroup = customGroups.find((g) => g.id === groupId)
   if (!customGroup) {
@@ -448,11 +446,12 @@ function CustomGroupPage({ groupId }: Props) {
     ? customGroups.find((g) => g.id === customGroup.parentId)
     : undefined
 
-  // Sub-groups of this group, in order
+  // Sub-groups of this group — always shown alphabetically
   const childIds = childGroupOrder[groupId] ?? []
   const childGroups = childIds
     .map((id) => customGroups.find((g) => g.id === id))
     .filter((g): g is NonNullable<typeof g> => !!g)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName))
 
   const addedIds = groupAdditions[groupId] ?? []
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
@@ -509,7 +508,7 @@ function CustomGroupPage({ groupId }: Props) {
             Sub-groups
           </p>
           <div className="flex flex-col gap-1">
-            {childGroups.map((child, idx) => {
+            {childGroups.map((child) => {
               const Icon = ICON_MAP[child.iconName] ?? ICON_MAP['Home']
               const childTileIds = groupAdditions[child.id] ?? []
               const childTileCount = childTileIds.length
@@ -549,26 +548,6 @@ function CustomGroupPage({ groupId }: Props) {
                     </span>
                     <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
                   </button>
-                  {editMode && (
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        onClick={() => moveSubGroupUp(groupId, child.id)}
-                        disabled={idx === 0}
-                        className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 transition-colors"
-                        aria-label="Move up"
-                      >
-                        <ChevronUp size={12} />
-                      </button>
-                      <button
-                        onClick={() => moveSubGroupDown(groupId, child.id)}
-                        disabled={idx === childGroups.length - 1}
-                        className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 transition-colors"
-                        aria-label="Move down"
-                      >
-                        <ChevronDown size={12} />
-                      </button>
-                    </div>
-                  )}
                   {editMode && (
                     <button
                       onClick={() => handleDeleteSubGroup(child.id, child.displayName)}
