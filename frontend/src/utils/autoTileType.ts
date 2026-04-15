@@ -57,6 +57,7 @@ export function availableTileTypes(device: DeviceState): TileType[] {
   if ('presence' in attrs) types.push('presence')
   if ('power' in attrs) types.push('power-meter')
   if ('temperature' in attrs) types.push('temperature')
+  if ('battery' in attrs) types.push('battery')
   if (cmds.includes('push')) types.push('button')
 
   return types.length > 0 ? types : ['switch']
@@ -73,4 +74,5 @@ export const TILE_TYPE_LABELS: Record<string, string> = {
   'power-meter':  'Power Meter',
   'temperature':  'Temperature',
   'button':       'Button',
+  'battery':      'Battery',
 }

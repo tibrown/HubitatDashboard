@@ -26,6 +26,7 @@ import { HSMTile } from './tiles/HSMTile'
 import { ModeTile } from './tiles/ModeTile'
 import { RingDetectionTile } from './tiles/RingDetectionTile'
 import { PresenceTile } from './tiles/PresenceTile'
+import { BatteryTile } from './tiles/BatteryTile'
 
 interface Props {
   groupId: string
@@ -106,6 +107,7 @@ function renderTile(tile: TileConfig) {
     case 'mode':           return <ModeTile key="mode" />
     case 'ring-detection': return <RingDetectionTile key={id} deviceId={tile.deviceId ?? ''} label={tile.label} lrpHubVarName={tile.hubVarName ?? ''} />
     case 'presence':       return <PresenceTile key={id} {...base} />
+    case 'battery':        return <BatteryTile key={id} {...base} />
     default:               return null
   }
 }

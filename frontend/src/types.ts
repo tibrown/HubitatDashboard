@@ -17,7 +17,7 @@ export type TileType =
   | 'switch' | 'dimmer' | 'rgbw' | 'contact' | 'motion'
   | 'temperature' | 'power-meter' | 'button' | 'lock'
   | 'connector' | 'hub-variable' | 'hsm' | 'mode'
-  | 'ring-detection' | 'presence';
+  | 'ring-detection' | 'presence' | 'battery';
 
 export interface TileConfig {
   deviceId?: string;
