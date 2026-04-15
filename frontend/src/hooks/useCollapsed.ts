@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { useEditMode } from '../context/EditModeContext'
 
-/** Persists collapse state to localStorage per key. Starts expanded by default. */
+/** Persists collapse state to localStorage per key.
+ *  Automatically force-expands while edit mode is active (via EditModeContext),
+ *  then restores the persisted state when edit mode ends. */
 export function useCollapsed(key: string, defaultCollapsed = false): [boolean, () => void] {
   const storageKey = `tile-collapsed:${key}`
+  const editMode = useEditMode()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(storageKey)
@@ -20,5 +24,6 @@ export function useCollapsed(key: string, defaultCollapsed = false): [boolean, (
     })
   }
 
-  return [collapsed, toggle]
+  // Force-expand during edit mode; persisted state is untouched
+  return [editMode ? false : collapsed, toggle]
 }

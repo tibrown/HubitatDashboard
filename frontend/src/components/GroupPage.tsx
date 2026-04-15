@@ -10,6 +10,7 @@ import { showToast } from '../utils/toast'
 import { AddDeviceModal } from './AddDeviceModal'
 import { CreateGroupModal } from './CreateGroupModal'
 import { ICON_MAP } from '../utils/iconMap'
+import { EditModeContext } from '../context/EditModeContext'
 import { SwitchTile } from './tiles/SwitchTile'
 import { DimmerTile } from './tiles/DimmerTile'
 import { RGBWTile } from './tiles/RGBWTile'
@@ -375,6 +376,7 @@ function OtherGroupPage() {
 
   const tilesOrNull = sortColumnMajor(unclaimedTiles, numCols)
   return (
+    <EditModeContext.Provider value={editMode}>
     <div className="p-4 sm:p-6">
       <GroupHeader
         title="Other"
@@ -392,6 +394,7 @@ function OtherGroupPage() {
         )}
       </div>
     </div>
+    </EditModeContext.Provider>
   )
 }
 
@@ -439,6 +442,7 @@ function StaticGroupPage({ groupId }: Props) {
   )
 
   return (
+    <EditModeContext.Provider value={editMode}>
     <div className="p-4 sm:p-6">
       <GroupHeader
         title={staticGroup.displayName}
@@ -472,6 +476,7 @@ function StaticGroupPage({ groupId }: Props) {
         />
       )}
     </div>
+    </EditModeContext.Provider>
   )
 }
 
@@ -534,6 +539,7 @@ function CustomGroupPage({ groupId }: Props) {
   }
 
   return (
+    <EditModeContext.Provider value={editMode}>
     <div className="p-4 sm:p-6">
       {/* Breadcrumb when nested */}
       {parentGroup && (
@@ -655,6 +661,7 @@ function CustomGroupPage({ groupId }: Props) {
         />
       )}
     </div>
+    </EditModeContext.Provider>
   )
 }
 
