@@ -315,7 +315,6 @@ function TileWrapper({
   groupId,
   isOther,
   editMode,
-  index,
 }: {
   tile: TileConfig
   groupId: string
@@ -323,10 +322,18 @@ function TileWrapper({
   editMode: boolean
   index: number
 }) {
+  const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
+  // Apply per-device override here as a final guard — ensures the displayed
+  // type is always current even if the tile config was built before the override.
+  const effectiveTile: TileConfig =
+    tile.deviceId && tileTypeOverrides[tile.deviceId]
+      ? { ...tile, tileType: tileTypeOverrides[tile.deviceId] }
+      : tile
+
   return (
-    <div className="relative" key={tile.deviceId ?? tile.tileType ?? `tile-${index}`}>
-      {renderTile(tile)}
-      {editMode && <EditOverlay tile={tile} groupId={groupId} isOther={isOther} />}
+    <div className="relative">
+      {renderTile(effectiveTile)}
+      {editMode && <EditOverlay tile={effectiveTile} groupId={groupId} isOther={isOther} />}
     </div>
   )
 }
