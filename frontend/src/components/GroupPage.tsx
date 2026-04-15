@@ -49,6 +49,29 @@ function useGridColumns() {
 
 const PINNED_TYPES = new Set(['hsm', 'mode'])
 
+/** Returns { active, inactive } counts for a list of device IDs.
+ *  Devices with no binary state (temperature, power, button, etc.) are excluded from both counts. */
+function deviceStatusSummary(
+  deviceIds: string[],
+  devices: Record<string, import('../types').DeviceState>,
+): { active: number; inactive: number } {
+  let active = 0
+  let inactive = 0
+  for (const id of deviceIds) {
+    const d = devices[id]
+    if (!d) continue
+    const a = d.attributes
+    // Determine active state by the most specific available attribute
+    if ('switch' in a)    { a.switch === 'on'         ? active++ : inactive++; continue }
+    if ('contact' in a)   { a.contact === 'open'       ? active++ : inactive++; continue }
+    if ('motion' in a)    { a.motion === 'active'      ? active++ : inactive++; continue }
+    if ('presence' in a)  { a.presence === 'present'   ? active++ : inactive++; continue }
+    if ('lock' in a)      { a.lock === 'unlocked'      ? active++ : inactive++; continue }
+    // temperature, power, hub-variable, button, etc. — skip (no binary state)
+  }
+  return { active, inactive }
+}
+
 function sortColumnMajor(tiles: TileConfig[], numCols: number): (TileConfig | null)[] {
   const sorted = [...tiles].sort((a, b) => a.label.localeCompare(b.label))
   const N = sorted.length
@@ -488,8 +511,10 @@ function CustomGroupPage({ groupId }: Props) {
           <div className="flex flex-col gap-1">
             {childGroups.map((child, idx) => {
               const Icon = ICON_MAP[child.iconName] ?? ICON_MAP['Home']
-              const childTileCount = (groupAdditions[child.id] ?? []).length
+              const childTileIds = groupAdditions[child.id] ?? []
+              const childTileCount = childTileIds.length
               const grandchildCount = (childGroupOrder[child.id] ?? []).length
+              const { active, inactive } = deviceStatusSummary(childTileIds, devices)
               return (
                 <div key={child.id} className="flex items-center gap-2">
                   <button
@@ -500,9 +525,27 @@ function CustomGroupPage({ groupId }: Props) {
                     <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">
                       {child.displayName}
                     </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                      {childTileCount > 0 && `${childTileCount} device${childTileCount !== 1 ? 's' : ''}`}
-                      {grandchildCount > 0 && ` · ${grandchildCount} sub-group${grandchildCount !== 1 ? 's' : ''}`}
+                    <span className="flex items-center gap-2 text-xs flex-shrink-0">
+                      {active > 0 && (
+                        <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                          {active}
+                        </span>
+                      )}
+                      {inactive > 0 && (
+                        <span className="flex items-center gap-0.5 text-gray-400 dark:text-gray-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600 inline-block" />
+                          {inactive}
+                        </span>
+                      )}
+                      {childTileCount === 0 && grandchildCount === 0 && (
+                        <span className="text-gray-400 dark:text-gray-500">empty</span>
+                      )}
+                      {grandchildCount > 0 && (
+                        <span className="text-gray-400 dark:text-gray-500">
+                          {grandchildCount} sub-group{grandchildCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </span>
                     <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
                   </button>
