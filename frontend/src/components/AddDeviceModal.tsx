@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search, X, Clock, ShieldCheck } from 'lucide-react'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import { autoTileType } from '../utils/autoTileType'
@@ -10,6 +10,12 @@ interface Props {
   currentDeviceIds: Set<string>
   onClose: () => void
 }
+
+/** Synthetic IDs for non-device special tiles */
+export const SPECIAL_TILES = [
+  { id: '__mode__', label: 'Hub Mode',            Icon: Clock,        tileType: 'mode' },
+  { id: '__hsm__',  label: 'Hub Security Manager', Icon: ShieldCheck,  tileType: 'hsm'  },
+] as const
 
 export function AddDeviceModal({ groupId, currentDeviceIds, onClose }: Props) {
   const [query, setQuery] = useState('')
@@ -64,6 +70,26 @@ export function AddDeviceModal({ groupId, currentDeviceIds, onClose }: Props) {
 
         {/* Device list */}
         <div className="flex-1 overflow-y-auto">
+          {/* Special (non-device) tiles */}
+          {!query && SPECIAL_TILES.some((s) => !currentDeviceIds.has(s.id)) && (
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <p className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                Special Tiles
+              </p>
+              {SPECIAL_TILES.filter((s) => !currentDeviceIds.has(s.id)).map(({ id, label, Icon, tileType }) => (
+                <button
+                  key={id}
+                  onClick={() => handleAdd(id)}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-0"
+                >
+                  <Icon size={14} className="flex-shrink-0 text-blue-400" />
+                  <span className="flex-1 font-medium truncate">{label}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 font-mono">{tileType}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {filtered.length === 0 ? (
             <p className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
               {query ? 'No devices match your search.' : 'All devices are already in this group.'}

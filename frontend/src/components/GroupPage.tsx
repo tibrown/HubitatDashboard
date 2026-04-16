@@ -7,7 +7,7 @@ import { useGroupStore } from '../store/groupStore'
 import type { TileConfig, TileType } from '../types'
 import { autoTileType, availableTileTypes, TILE_TYPE_LABELS } from '../utils/autoTileType'
 import { showToast } from '../utils/toast'
-import { AddDeviceModal } from './AddDeviceModal'
+import { AddDeviceModal, SPECIAL_TILES } from './AddDeviceModal'
 import { CreateGroupModal } from './CreateGroupModal'
 import { ICON_MAP } from '../utils/iconMap'
 import { EditModeContext } from '../context/EditModeContext'
@@ -50,6 +50,12 @@ function useGridColumns() {
 }
 
 const PINNED_TYPES = new Set(['hsm', 'mode'])
+
+/** Maps synthetic IDs (used in groupAdditions) → their TileConfig */
+const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
+  '__mode__': { tileType: 'mode' as TileType, label: 'Hub Mode' },
+  '__hsm__':  { tileType: 'hsm'  as TileType, label: 'Hub Security Manager' },
+}
 
 /** Returns { active, inactive } counts for a list of device IDs.
  *  Devices with no binary state (temperature, power, button, etc.) are excluded from both counts. */
@@ -331,7 +337,7 @@ function TileWrapper({
       : tile
 
   return (
-    <div className="relative">
+    <div className={`relative${PINNED_TYPES.has(tile.tileType) ? ' col-span-2' : ''}`}>
       {renderTile(effectiveTile)}
       {editMode && <EditOverlay tile={effectiveTile} groupId={groupId} isOther={isOther} />}
     </div>
@@ -436,6 +442,7 @@ function StaticGroupPage({ groupId }: Props) {
   const addedTiles: TileConfig[] = addedIds
     .filter((id) => !baseTileDeviceIds.has(id))
     .flatMap((id) => {
+      if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
       const device = devices[id]
       if (!device) return []
       return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
@@ -525,6 +532,7 @@ function CustomGroupPage({ groupId }: Props) {
 
   const addedIds = groupAdditions[groupId] ?? []
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
+    if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
     const device = devices[id]
     if (!device) return []
     return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
