@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight, Sliders } from 'lucide-react'
+import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight, Sliders, GripVertical } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import type { TileConfig, TileType } from '../types'
 import { autoTileType, availableTileTypes, TILE_TYPE_LABELS } from '../utils/autoTileType'
 import { showToast } from '../utils/toast'
-import { AddDeviceModal, SPECIAL_TILES } from './AddDeviceModal'
+import { AddDeviceModal } from './AddDeviceModal'
 import { CreateGroupModal } from './CreateGroupModal'
 import { ICON_MAP } from '../utils/iconMap'
 import { EditModeContext } from '../context/EditModeContext'
@@ -55,6 +55,20 @@ const PINNED_TYPES = new Set(['hsm', 'mode'])
 const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
   '__mode__': { tileType: 'mode' as TileType, label: 'Hub Mode' },
   '__hsm__':  { tileType: 'hsm'  as TileType, label: 'Hub Security Manager' },
+}
+
+/** Applies a stored tile order to a tile array, appending any newly added tiles at the end. */
+function applyTileOrder(tiles: TileConfig[], orderedIds: string[]): TileConfig[] {
+  const tileById = new Map(tiles.map((t) => [t.deviceId ?? t.tileType, t]))
+  const result: TileConfig[] = []
+  for (const id of orderedIds) {
+    const t = tileById.get(id)
+    if (t) result.push(t)
+  }
+  for (const t of tiles) {
+    if (!orderedIds.includes(t.deviceId ?? t.tileType)) result.push(t)
+  }
+  return result
 }
 
 /** Returns { active, inactive } counts for a list of device IDs.
@@ -315,18 +329,29 @@ function GroupHeader({
   )
 }
 
+type DragHandlers = {
+  onDragStart: () => void
+  onDragOver: (e: React.DragEvent) => void
+  onDrop: (e: React.DragEvent) => void
+  onDragEnd: () => void
+  isDragOver: boolean
+  isDragging: boolean
+}
+
 /** Renders a single tile, wrapped in a relative container for edit overlays. */
 function TileWrapper({
   tile,
   groupId,
   isOther,
   editMode,
+  dragHandlers,
 }: {
   tile: TileConfig
   groupId: string
   isOther: boolean
   editMode: boolean
   index: number
+  dragHandlers?: DragHandlers
 }) {
   const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
   // Apply per-device override here as a final guard — ensures the displayed
@@ -336,10 +361,24 @@ function TileWrapper({
       ? { ...tile, tileType: tileTypeOverrides[tile.deviceId] }
       : tile
 
+  const isDraggable = editMode && !!dragHandlers
+
   return (
-    <div className={`relative${PINNED_TYPES.has(tile.tileType) ? ' col-span-2' : ''}`}>
+    <div
+      className={`relative${PINNED_TYPES.has(tile.tileType) ? ' col-span-2' : ''}${dragHandlers?.isDragOver ? ' ring-2 ring-blue-400 rounded-xl' : ''}${dragHandlers?.isDragging ? ' opacity-40' : ''}`}
+      draggable={isDraggable || undefined}
+      onDragStart={isDraggable ? dragHandlers!.onDragStart : undefined}
+      onDragOver={isDraggable ? dragHandlers!.onDragOver : undefined}
+      onDrop={isDraggable ? dragHandlers!.onDrop : undefined}
+      onDragEnd={isDraggable ? dragHandlers!.onDragEnd : undefined}
+    >
       {renderTile(effectiveTile)}
       {editMode && <EditOverlay tile={effectiveTile} groupId={groupId} isOther={isOther} />}
+      {isDraggable && (
+        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 text-white/50 pointer-events-none">
+          <GripVertical size={12} />
+        </div>
+      )}
     </div>
   )
 }
@@ -414,13 +453,17 @@ function OtherGroupPage() {
 }
 
 function StaticGroupPage({ groupId }: Props) {
-  const [editMode, setEditMode]         = useState(false)
+  const [editMode, setEditMode]           = useState(false)
   const [showAddDevice, setShowAddDevice] = useState(false)
+  const [dragIndex, setDragIndex]         = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const numCols           = useGridColumns()
   const devices           = useDeviceStore((s) => s.devices)
   const groupAdditions    = useGroupStore((s) => s.groupAdditions)
   const groupExclusions   = useGroupStore((s) => s.groupExclusions)
   const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
+  const tileOrder         = useGroupStore((s) => s.tileOrder)
+  const setTileOrder      = useGroupStore((s) => s.setTileOrder)
 
   const staticGroup = staticGroups.find((g) => g.id === groupId)
   if (!staticGroup) {
@@ -451,7 +494,36 @@ function StaticGroupPage({ groupId }: Props) {
   const resolvedTiles = [...baseTiles, ...addedTiles]
   const pinnedTiles   = resolvedTiles.filter((t) => PINNED_TYPES.has(t.tileType))
   const restTiles     = resolvedTiles.filter((t) => !PINNED_TYPES.has(t.tileType))
-  const tilesOrNull   = sortColumnMajor(restTiles, numCols)
+
+  const storedOrder      = tileOrder[groupId] as string[] | undefined
+  const orderedRestTiles = storedOrder
+    ? applyTileOrder(restTiles, storedOrder)
+    : [...restTiles].sort((a, b) => a.label.localeCompare(b.label))
+  const tilesForGrid: (TileConfig | null)[] = storedOrder
+    ? orderedRestTiles
+    : sortColumnMajor(restTiles, numCols)
+
+  const makeDragHandlers = (tile: TileConfig): DragHandlers => {
+    const id = tile.deviceId ?? tile.tileType
+    const orderIndex = orderedRestTiles.findIndex((t) => (t.deviceId ?? t.tileType) === id)
+    return {
+      onDragStart: () => setDragIndex(orderIndex),
+      onDragOver: (e) => { e.preventDefault(); setDragOverIndex(orderIndex) },
+      onDrop: (e) => {
+        e.preventDefault()
+        if (dragIndex === null || dragIndex === orderIndex) { setDragIndex(null); setDragOverIndex(null); return }
+        const next = [...orderedRestTiles]
+        const [moved] = next.splice(dragIndex, 1)
+        next.splice(orderIndex, 0, moved)
+        setTileOrder(groupId, next.map((t) => t.deviceId ?? t.tileType))
+        setDragIndex(null)
+        setDragOverIndex(null)
+      },
+      onDragEnd: () => { setDragIndex(null); setDragOverIndex(null) },
+      isDragOver: dragOverIndex === orderIndex,
+      isDragging: dragIndex === orderIndex,
+    }
+  }
 
   const currentDeviceIds = new Set(
     resolvedTiles.map((t) => t.deviceId).filter((id): id is string => !!id),
@@ -473,11 +545,19 @@ function StaticGroupPage({ groupId }: Props) {
           ))}
         </div>
       )}
-      {tilesOrNull.length > 0 && (
+      {tilesForGrid.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {tilesOrNull.map((tile, i) =>
+          {tilesForGrid.map((tile, i) =>
             tile ? (
-              <TileWrapper key={tile.deviceId ?? tile.tileType ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+              <TileWrapper
+                key={tile.deviceId ?? tile.tileType ?? `tile-${i}`}
+                tile={tile}
+                groupId={groupId}
+                isOther={false}
+                editMode={editMode}
+                index={i}
+                dragHandlers={editMode ? makeDragHandlers(tile) : undefined}
+              />
             ) : (
               <div key={`empty-${i}`} aria-hidden="true" />
             ),
@@ -497,9 +577,11 @@ function StaticGroupPage({ groupId }: Props) {
 }
 
 function CustomGroupPage({ groupId }: Props) {
-  const [editMode, setEditMode]             = useState(false)
-  const [showAddDevice, setShowAddDevice]   = useState(false)
+  const [editMode, setEditMode]               = useState(false)
+  const [showAddDevice, setShowAddDevice]     = useState(false)
   const [showAddSubGroup, setShowAddSubGroup] = useState(false)
+  const [dragIndex, setDragIndex]             = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex]     = useState<number | null>(null)
   const navigate = useNavigate()
   const numCols           = useGridColumns()
   const devices           = useDeviceStore((s) => s.devices)
@@ -509,6 +591,8 @@ function CustomGroupPage({ groupId }: Props) {
   const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
   const addCustomGroup    = useGroupStore((s) => s.addCustomGroup)
   const removeCustomGroup = useGroupStore((s) => s.removeCustomGroup)
+  const tileOrder         = useGroupStore((s) => s.tileOrder)
+  const setTileOrder      = useGroupStore((s) => s.setTileOrder)
 
   const customGroup = customGroups.find((g) => g.id === groupId)
   if (!customGroup) {
@@ -539,7 +623,35 @@ function CustomGroupPage({ groupId }: Props) {
   })
 
   const currentDeviceIds = new Set(addedIds)
-  const tilesOrNull = sortColumnMajor(tiles, numCols)
+  const storedOrder  = tileOrder[groupId] as string[] | undefined
+  const orderedTiles = storedOrder
+    ? applyTileOrder(tiles, storedOrder)
+    : [...tiles].sort((a, b) => a.label.localeCompare(b.label))
+  const tilesForGrid: (TileConfig | null)[] = storedOrder
+    ? orderedTiles
+    : sortColumnMajor(tiles, numCols)
+
+  const makeDragHandlers = (tile: TileConfig): DragHandlers => {
+    const id = tile.deviceId ?? tile.tileType
+    const orderIndex = orderedTiles.findIndex((t) => (t.deviceId ?? t.tileType) === id)
+    return {
+      onDragStart: () => setDragIndex(orderIndex),
+      onDragOver: (e) => { e.preventDefault(); setDragOverIndex(orderIndex) },
+      onDrop: (e) => {
+        e.preventDefault()
+        if (dragIndex === null || dragIndex === orderIndex) { setDragIndex(null); setDragOverIndex(null); return }
+        const next = [...orderedTiles]
+        const [moved] = next.splice(dragIndex, 1)
+        next.splice(orderIndex, 0, moved)
+        setTileOrder(groupId, next.map((t) => t.deviceId ?? t.tileType))
+        setDragIndex(null)
+        setDragOverIndex(null)
+      },
+      onDragEnd: () => { setDragIndex(null); setDragOverIndex(null) },
+      isDragOver: dragOverIndex === orderIndex,
+      isDragging: dragIndex === orderIndex,
+    }
+  }
 
   const handleCreateSubGroup = (name: string, iconName: string) => {
     addCustomGroup(
@@ -581,7 +693,7 @@ function CustomGroupPage({ groupId }: Props) {
       />
 
       {/* Device tiles */}
-      {tilesOrNull.length > 0 && (
+      {tilesForGrid.length > 0 && (
         <div className="mb-5">
           {childGroups.length > 0 && (
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
@@ -589,9 +701,17 @@ function CustomGroupPage({ groupId }: Props) {
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {tilesOrNull.map((tile, i) =>
+            {tilesForGrid.map((tile, i) =>
               tile ? (
-                <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+                <TileWrapper
+                  key={tile.deviceId ?? `tile-${i}`}
+                  tile={tile}
+                  groupId={groupId}
+                  isOther={false}
+                  editMode={editMode}
+                  index={i}
+                  dragHandlers={editMode ? makeDragHandlers(tile) : undefined}
+                />
               ) : (
                 <div key={`empty-${i}`} aria-hidden="true" />
               ),
