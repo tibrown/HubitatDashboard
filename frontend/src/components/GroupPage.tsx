@@ -580,6 +580,26 @@ function CustomGroupPage({ groupId }: Props) {
         onAddSubGroup={() => setShowAddSubGroup(true)}
       />
 
+      {/* Device tiles */}
+      {tilesOrNull.length > 0 && (
+        <div className="mb-5">
+          {childGroups.length > 0 && (
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+              Devices
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {tilesOrNull.map((tile, i) =>
+              tile ? (
+                <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+              ) : (
+                <div key={`empty-${i}`} aria-hidden="true" />
+              ),
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sub-group cards */}
       {childGroups.length > 0 && (
         <div className="mb-5">
@@ -641,26 +661,6 @@ function CustomGroupPage({ groupId }: Props) {
             })}
           </div>
         </div>
-      )}
-
-      {/* Device tiles */}
-      {tilesOrNull.length > 0 && (
-        <>
-          {childGroups.length > 0 && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
-              Devices
-            </p>
-          )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {tilesOrNull.map((tile, i) =>
-              tile ? (
-                <TileWrapper key={tile.deviceId ?? `tile-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
-              ) : (
-                <div key={`empty-${i}`} aria-hidden="true" />
-              ),
-            )}
-          </div>
-        </>
       )}
 
       {showAddDevice && (
