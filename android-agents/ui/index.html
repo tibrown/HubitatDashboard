@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>android - Dev Team Board</title>
+  <link rel="icon" type="image/x-icon" href="/Raava-icon.ico">
+  <link rel="icon" type="image/png" href="/Raava-icon.png">
+  <link rel="apple-touch-icon" href="/Raava-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #070b14;
+      color: #a8c4e0;
+      min-height: 100vh;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,191,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,191,255,0.022) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,100,200,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    header {
+      padding: 14px 24px;
+      background: #0a0f1e;
+      border-bottom: 1px solid rgba(0,191,255,0.12);
+      box-shadow: 0 2px 24px rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,191,255,0.35), transparent);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .raava-logo {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      filter: drop-shadow(0 0 8px rgba(0,191,255,0.4));
+      border-radius: 8px;
+    }
+    h1 {
+      margin: 0 0 3px 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #e0f0ff;
+      letter-spacing: 0.03em;
+    }
+    header p {
+      margin: 0;
+      color: #3a5a7a;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .settings-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,191,255,0.25);
+      background: rgba(0,30,60,0.6);
+      color: #4dc9ff;
+      cursor: pointer;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .settings-btn:hover {
+      background: rgba(0,50,90,0.7);
+      border-color: rgba(0,191,255,0.5);
+      box-shadow: 0 0 10px rgba(0,191,255,0.2);
+    }
+    .status { color: #3a5a7a; font-size: 12px; min-height: 20px; }
+    .live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #00bfff;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(0,191,255,0.25);
+      animation: cyan-pulse 2.4s ease-in-out infinite;
+    }
+    .live-dot.disconnected { background: #1a3050; box-shadow: none; animation: none; }
+    @keyframes cyan-pulse {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(0,191,255,0.25); }
+      50%       { box-shadow: 0 0 0 6px rgba(0,191,255,0.0); }
+    }
+    .wrap { padding: 20px 24px 32px; position: relative; z-index: 1; }
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .filter-btn {
+      border: 1px solid rgba(0,191,255,0.15);
+      background: rgba(0,20,50,0.6);
+      color: #5a8aac;
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .filter-btn.active { background: rgba(0,80,140,0.4); border-color: rgba(0,191,255,0.5); color: #4dc9ff; box-shadow: 0 0 6px rgba(0,191,255,0.1); }
+    .filter-btn:not(.active):hover { background: rgba(0,40,80,0.5); border-color: rgba(0,191,255,0.3); color: #90b8d8; }
+    .filter-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,191,255,0.2);
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .column {
+      border-radius: 10px;
+      min-height: 320px;
+      padding: 14px;
+      background: #0b1526;
+      border: 1px solid rgba(0,80,160,0.25);
+    }
+    .column[data-status="todo"]        { border-top: 3px solid #7c3aed; }
+    .column[data-status="scoped"]      { border-top: 3px solid #2563eb; }
+    .column[data-status="in_progress"] { border-top: 3px solid #06b6d4; }
+    .column[data-status="review"]      { border-top: 3px solid #d97706; }
+    .column[data-status="failed"]      { border-top: 3px solid #dc2626; }
+    .column.drag-over { border-color: rgba(0,191,255,0.5); }
+    .column h2 {
+      margin: 0 0 4px 0;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .column[data-status="todo"] h2        { color: #a78bfa; }
+    .column[data-status="scoped"] h2      { color: #60a5fa; }
+    .column[data-status="in_progress"] h2 { color: #22d3ee; }
+    .column[data-status="review"] h2      { color: #fbbf24; }
+    .column[data-status="failed"] h2      { color: #f87171; }
+    .column-body {
+      min-height: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card {
+      border: 1px solid rgba(0,80,160,0.25);
+      border-left-width: 3px;
+      border-radius: 8px;
+      background: #0d1829;
+      padding: 12px;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 8px rgba(0,100,200,0.12); }
+    .card:active { cursor: grabbing; }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .card-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,191,255,0.15);
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #c8dff5;
+      font-weight: 600;
+    }
+    .meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #3a5a7a;
+    }
+    .pill {
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(0,60,120,0.3);
+      border: 1px solid rgba(0,100,180,0.25);
+      color: #4a7a9a;
+    }
+    .pill-priority-high   { background: rgba(220,38,38,0.12);  color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+    .pill-priority-medium { background: rgba(217,119,6,0.12);  color: #fbbf24; border: 1px solid rgba(217,119,6,0.3); }
+    .pill-priority-low    { background: rgba(37,99,235,0.12);  color: #60a5fa; border: 1px solid rgba(37,99,235,0.3); }
+    .notes {
+      margin: 0;
+      white-space: pre-wrap;
+      color: #7a9ec0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .rd { margin-top: 8px; font-size: 11px; color: #2a4a6a; }
+    .empty { color: #1e3a58; font-size: 12px; padding: 8px 2px; font-style: italic; }
+
+    /* Agent modal */
+    .pm-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .pm-modal-overlay.active { display: flex; }
+    .pm-modal {
+      width: min(1100px, 100%);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      background: #0a1020;
+      border: 1px solid rgba(0,191,255,0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,80,160,0.15);
+    }
+    .pm-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #060c18;
+      border-bottom: 1px solid rgba(0,191,255,0.15);
+    }
+    .pm-modal-header h2 {
+      margin: 0;
+      font-size: 12px;
+      color: #4dc9ff;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .pm-modal-close { border: 0; background: transparent; color: #3a5a7a; font-size: 18px; cursor: pointer; transition: color 0.15s; }
+    .pm-modal-close:hover { color: #4dc9ff; }
+    .pm-modal-body {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 0;
+      flex: 1;
+    }
+    .pm-agent-list {
+      border-right: 1px solid rgba(0,80,160,0.22);
+      padding: 10px;
+      overflow: auto;
+      background: #060c18;
+    }
+    .pm-agent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      background: rgba(0,20,50,0.4);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .pm-agent-item:hover, .pm-agent-item.active {
+      border-color: rgba(0,191,255,0.25);
+      background: rgba(0,50,100,0.4);
+    }
+    .pm-agent-face {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+    .pm-agent-name {
+      font-size: 13px;
+      color: #c8dff5;
+      font-weight: 600;
+    }
+    .pm-agent-sub { font-size: 11px; color: #2a4a6a; margin-top: 2px; }
+    .pm-skills-panel { padding: 18px; overflow: auto; background: #0a1020; }
+    .pm-skills-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .pm-skills-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(0,191,255,0.2);
+      flex: 0 0 auto;
+    }
+    .pm-skills-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #c8dff5;
+    }
+    .pm-skills-role { font-size: 11px; color: #2a4a6a; margin-top: 3px; }
+    .pm-section-label {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #1e3a58;
+      margin: 16px 0 8px;
+      font-weight: 600;
+    }
+    .pm-file-list { display: flex; flex-direction: column; gap: 8px; }
+    .pm-file-item {
+      border: 1px solid rgba(0,80,160,0.22);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #060c18;
+    }
+    .pm-file-item.expanded { border-color: rgba(0,191,255,0.3); }
+    .pm-file-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    .pm-file-name { font-size: 12px; color: #7a9ec0; font-weight: 500; }
+    .pm-file-open { color: #2a4a6a; text-decoration: none; font-size: 11px; flex: 0 0 auto; }
+    .pm-file-body { display: none; border-top: 1px solid rgba(0,80,160,0.2); padding: 12px; }
+    .pm-file-body pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #7a9ec0;
+    }
+    .pm-skills-empty { color: #1e3a58; font-size: 12px; padding: 4px 0; font-style: italic; }
+
+    /* Column tooltip */
+    .col-hint { font-size: 11px; color: #1e3a58; margin-bottom: 10px; font-style: italic; }
+
+    /* Project Complete overlay */
+    .complete-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 300;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      animation: fadeInOverlay 0.4s ease;
+    }
+    .complete-overlay.active { display: flex; }
+    @keyframes fadeInOverlay {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .complete-box {
+      position: relative;
+      width: min(480px, 100%);
+      background: linear-gradient(160deg, #0d1829 0%, #070b14 100%);
+      border: 1px solid rgba(0,191,255,0.3);
+      border-radius: 16px;
+      padding: 44px 40px 36px;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(0,191,255,0.1), 0 32px 80px rgba(0,0,0,0.7);
+      animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes riseIn {
+      from { transform: translateY(28px) scale(0.96); opacity: 0; }
+      to   { transform: translateY(0)    scale(1);    opacity: 1; }
+    }
+    .complete-corner {
+      position: absolute;
+      width: 16px; height: 16px;
+      border-color: rgba(0,191,255,0.5);
+      border-style: solid;
+    }
+    .complete-corner.tl { top: 10px; left: 10px;   border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
+    .complete-corner.tr { top: 10px; right: 10px;  border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
+    .complete-corner.bl { bottom: 10px; left: 10px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
+    .complete-corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
+    .complete-emblem {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 0 12px rgba(0,191,255,0.5));
+      animation: emblemPulse 3s ease-in-out infinite;
+    }
+    @keyframes emblemPulse {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(0,191,255,0.4)); }
+      50%       { filter: drop-shadow(0 0 24px rgba(0,191,255,0.75)); }
+    }
+    .complete-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #4dc9ff;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      line-height: 1.2;
+    }
+    .complete-sub {
+      color: #3a5a7a;
+      font-size: 13px;
+      margin: 0 0 24px;
+      line-height: 1.6;
+    }
+    .complete-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,191,255,0.3), transparent);
+      margin: 0 0 24px;
+    }
+    .complete-btn {
+      display: inline-block;
+      padding: 10px 32px;
+      background: rgba(0,50,100,0.5);
+      border: 1px solid rgba(0,191,255,0.3);
+      border-radius: 6px;
+      color: #4dc9ff;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .complete-btn:hover {
+      background: rgba(0,80,150,0.5);
+      border-color: rgba(0,191,255,0.6);
+      box-shadow: 0 0 12px rgba(0,191,255,0.2);
+    }
+
+    @media (max-width: 1200px) {
+      .board { grid-template-columns: 1fr 1fr; }
+      .pm-modal-body { grid-template-columns: 1fr; }
+      .pm-agent-list { border-right: 0; border-bottom: 1px solid rgba(0,80,160,0.2); }
+    }
+    @media (max-width: 700px) {
+      .board { grid-template-columns: 1fr; }
+      .header-right { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <img class="raava-logo" src="/Raava-icon.png" alt="Raava">
+      <div>
+        <h1>android</h1>
+        <p>Raava Autonomous Dev Team</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="settings-btn" id="settings-btn" title="View agents & skills">🗺️</button>
+      <div class="live-dot" id="live-dot" title="Live updates connected"></div>
+      <div class="status" id="status"></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="filters" id="filters"></div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="pm-modal-overlay" id="pm-modal-overlay">
+    <div class="pm-modal">
+      <div class="pm-modal-header">
+        <h2>Dev Team Agents</h2>
+        <button class="pm-modal-close" id="pm-modal-close">&#x2715;</button>
+      </div>
+      <div class="pm-modal-body">
+        <div class="pm-agent-list" id="pm-agent-list"></div>
+        <div class="pm-skills-panel" id="pm-skills-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="complete-overlay" id="complete-overlay">
+    <div class="complete-box">
+      <div class="complete-corner tl"></div>
+      <div class="complete-corner tr"></div>
+      <div class="complete-corner bl"></div>
+      <div class="complete-corner br"></div>
+      <div class="complete-emblem">⚜️</div>
+      <h2 class="complete-title">Project Complete</h2>
+      <p class="complete-sub">All tasks have passed review and been archived.<br>The team's work is done.</p>
+      <div class="complete-divider"></div>
+      <button class="complete-btn" id="complete-dismiss">Dismiss</button>
+    </div>
+  </div>
+
+  <script>
+    const API = "/api";
+    const AGENT_ORDER = [
+      "orchestrator",
+      "project-manager",
+      "backend-dev",
+      "dba",
+      "frontend-dev",
+      "architect",
+      "qa-tester",
+      "research"
+    ];
+    const STATUSES = ["todo", "scoped", "in_progress", "review", "failed"];
+    const STATUS_LABELS = {
+      todo: "Todo",
+      scoped: "Scoped",
+      in_progress: "In Progress",
+      review: "Review",
+      failed: "Failed"
+    };
+    const STATUS_HINTS = {
+      todo: "Raava created — unassigned, awaiting PM assignment",
+      scoped: "Assigned to dev — PM approved, ready to begin",
+      in_progress: "Agent actively working",
+      review: "Architect or QA Tester reviewing",
+      failed: "QA failed — Raava is creating fix tasks via full SDLC"
+    };
+    const NATION_LABELS = {
+      todo: "Phase 1",
+      scoped: "Phase 2",
+      in_progress: "Phase 3",
+      review: "Phase 4",
+      failed: "Rework"
+    };
+    const NATION_ELEMENTS = {
+      todo: "○",
+      scoped: "◈",
+      in_progress: "◉",
+      review: "◎",
+      failed: "✕"
+    };
+
+    let repos = {};
+    let allData = {};
+    let skillsData = {};
+    let activeRepo = "all";
+    let activePm = null;
+    let dragging = null;
+    let projectCompleteShown = false;
+
+    function showStatus(message, isError = false) {
+      const status = document.getElementById("status");
+      status.textContent = message;
+      status.style.color = isError ? "#8c1a1a" : "#c8a060";
+      if (message) {
+        window.clearTimeout(showStatus.timer);
+        showStatus.timer = window.setTimeout(() => { status.textContent = ""; }, 1800);
+      }
+    }
+
+    function avatarFor(name) { return `/avatars/${name}.svg?v=2`; }
+    function agentNames() { return AGENT_ORDER.filter((name) => repos[name]); }
+    function repoColor(repo) { return repos[repo]?.color || "#60a5fa"; }
+    function repoLabel(repo) { return repos[repo]?.label || repo.toUpperCase(); }
+    function repoCodename(repo) { return repos[repo]?.codename || repo; }
+    function repoRole(repo) { return repos[repo]?.role || repo; }
+    function repoSub(repo) { return repos[repo]?.sub || ""; }
+
+    function filteredItems() {
+      const names = activeRepo === "all" ? agentNames() : [activeRepo];
+      const raw = names.flatMap((name) =>
+        (allData[name]?.backlog || []).map((item) => ({ ...item, repo: name }))
+      );
+
+      // In "All" view, deduplicate by task ID across repos.
+      // The orchestrator writes a tracking entry (same ID) into its own backlog for every
+      // task it creates in an agent's backlog. Both copies share the same ID because task
+      // IDs are globally unique. When a duplicate pair is found, keep the non-orchestrator
+      // copy — it has the full data (notes, priority, correct owner). The orchestrator's
+      // copy is just a log and should never appear as a separate card on the board.
+      if (activeRepo !== "all") return raw;
+
+      const seenIds = new Map(); // id → index in deduped
+      const deduped = [];
+      for (const item of raw) {
+        const existingIdx = seenIds.get(item.id);
+        if (existingIdx === undefined) {
+          seenIds.set(item.id, deduped.length);
+          deduped.push(item);
+        } else if (deduped[existingIdx].repo === "orchestrator" && item.repo !== "orchestrator") {
+          // Replace the orchestrator tracking copy with the real agent task
+          deduped[existingIdx] = item;
+        }
+        // Otherwise the first non-orchestrator copy wins — ignore subsequent duplicates
+      }
+      return deduped;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function renderFilters() {
+      const filters = document.getElementById("filters");
+      const names = ["all", ...agentNames()];
+      filters.innerHTML = names.map((name) => {
+        const label = name === "all" ? "All" : repoLabel(name);
+        const active = name === activeRepo ? "active" : "";
+        const avatar = name === "all"
+          ? ""
+          : `<img class="filter-avatar" src="${avatarFor(name)}" alt="${label}">`;
+        return `<button class="filter-btn ${active}" data-repo="${name}">${avatar}<span>${label}</span></button>`;
+      }).join("");
+
+      filters.querySelectorAll("[data-repo]").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeRepo = button.dataset.repo;
+          renderFilters();
+          renderBoard();
+        });
+      });
+    }
+
+    function priorityPillClass(priority) {
+      if (priority === "high") return "pill pill-priority-high";
+      if (priority === "low") return "pill pill-priority-low";
+      return "pill pill-priority-medium";
+    }
+
+    function makeCard(item) {
+      const status = item.status;
+
+      // Determine which avatar and border color to display based on column context
+      let displayRepo = item.repo;
+      let borderColor = repoColor(item.repo);
+
+      if (status === "todo") {
+        // All unassigned tasks wear Raava's face — they belong to no dev yet
+        displayRepo = "orchestrator";
+        borderColor = repoColor("orchestrator");
+      } else if (status === "review" && item.reviewer && repos[item.reviewer]) {
+        // Show whoever is currently reviewing (architect or qa-tester)
+        displayRepo = item.reviewer;
+        borderColor = repoColor(item.reviewer);
+      } else if (status === "failed") {
+        // Keep the dev's avatar but signal failure with a red border
+        borderColor = "#7a1a1a";
+      }
+
+      // Build the meta row differently per column
+      let metaHtml;
+      if (status === "todo") {
+        metaHtml = `
+          <span class="pill" style="color:#a855f7;border-color:rgba(168,85,247,0.35);background:rgba(168,85,247,0.08)">Unassigned · Awaiting PM</span>
+          <span class="${priorityPillClass(item.priority)}">${escapeHtml(item.priority)}</span>
+        `;
+      } else if (status === "review") {
+        const reviewerRepo = (item.reviewer && repos[item.reviewer]) ? item.reviewer : null;
+        const reviewerLabel = reviewerRepo
+          ? `${escapeHtml(repoCodename(reviewerRepo))} · ${escapeHtml(repoRole(reviewerRepo))}`
+          : "Awaiting reviewer";
+        metaHtml = `
+          <span class="pill">${escapeHtml(repoCodename(item.repo))} <span style="opacity:0.55">•</span> ${escapeHtml(repoRole(item.repo))}</span>
+          <span class="pill" style="color:#c87a50;border-color:rgba(122,44,26,0.5);background:rgba(122,44,26,0.18)">🔍 ${reviewerLabel}</span>
+          ${item.priority ? `<span class="${priorityPillClass(item.priority)}">${escapeHtml(item.priority)}</span>` : ""}
+        `;
+      } else if (status === "failed") {
+        metaHtml = `
+          <span class="pill">${escapeHtml(repoCodename(item.repo))} <span style="opacity:0.55">•</span> ${escapeHtml(repoRole(item.repo))}</span>
+          <span class="pill" style="color:#e05555;border-color:rgba(122,26,26,0.6);background:rgba(122,26,26,0.22)">❌ QA Failed · Rework queued</span>
+          ${item.priority ? `<span class="${priorityPillClass(item.priority)}">${escapeHtml(item.priority)}</span>` : ""}
+        `;
+      } else {
+        // scoped, in_progress — show the assigned dev
+        metaHtml = `
+          <span class="pill">${escapeHtml(repoCodename(item.repo))} <span style="opacity:0.55">•</span> ${escapeHtml(repoRole(item.repo))}</span>
+          <span class="${priorityPillClass(item.priority)}">${escapeHtml(item.priority)}</span>
+        `;
+      }
+
+      return `
+        <div class="card" draggable="true" data-id="${item.id}" data-repo="${item.repo}" style="border-left-color:${borderColor}">
+          <div class="card-header">
+            <img class="card-avatar" src="${avatarFor(displayRepo)}" alt="${escapeHtml(repoCodename(displayRepo))}">
+            <div class="card-title">${escapeHtml(item.title)}</div>
+          </div>
+          <div class="meta">${metaHtml}</div>
+          <p class="notes">${escapeHtml(item.notes || "")}</p>
+          ${item.rd ? `<div class="rd">📄 ${escapeHtml(item.rd)}</div>` : ""}
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("board");
+      const items = filteredItems();
+      board.innerHTML = STATUSES.map((status) => {
+        const cards = items.filter((item) => item.status === status);
+        return `
+          <section class="column" data-status="${status}">
+            <h2 style="display:flex;align-items:center;gap:8px">
+              <span>${NATION_ELEMENTS[status]}</span>
+              <span>${STATUS_LABELS[status]}</span>
+              <span style="opacity:0.45;font-size:10px;font-weight:400;letter-spacing:0.05em">— ${NATION_LABELS[status]}</span>
+              <span style="opacity:0.5;font-weight:400;margin-left:auto">(${cards.length})</span>
+            </h2>
+            <div class="col-hint">${STATUS_HINTS[status]}</div>
+            <div class="column-body">
+              ${cards.length ? cards.map(makeCard).join("") : '<div class="empty">No tasks</div>'}
+            </div>
+          </section>
+        `;
+      }).join("");
+
+      board.querySelectorAll(".card").forEach((card) => {
+        card.addEventListener("dragstart", () => {
+          dragging = { id: Number(card.dataset.id), repo: card.dataset.repo };
+        });
+        card.addEventListener("dragend", () => { dragging = null; });
+      });
+
+      board.querySelectorAll(".column").forEach((column) => {
+        column.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          column.classList.add("drag-over");
+        });
+        column.addEventListener("dragleave", () => { column.classList.remove("drag-over"); });
+        column.addEventListener("drop", async (event) => {
+          event.preventDefault();
+          column.classList.remove("drag-over");
+          if (!dragging) return;
+          await moveTask(dragging.repo, dragging.id, column.dataset.status);
+        });
+      });
+
+      checkProjectComplete();
+    }
+
+    async function moveTask(repoName, taskId, newStatus) {
+      const repoData = allData[repoName];
+      if (!repoData) return;
+      const task = repoData.backlog.find((item) => Number(item.id) === Number(taskId));
+      if (!task || task.status === newStatus) return;
+      task.status = newStatus;
+      renderBoard();
+      try {
+        const response = await fetch(`${API}/data/${repoName}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(repoData)
+        });
+        if (!response.ok) throw new Error("save failed");
+        showStatus("Saved");
+      } catch {
+        showStatus("Save failed", true);
+      }
+    }
+
+    async function loadSkills() {
+      const response = await fetch(`${API}/skills`);
+      skillsData = await response.json();
+    }
+
+    function makeFileItem(path, name) {
+      return `
+        <div class="pm-file-item" data-path="${escapeHtml(path)}">
+          <div class="pm-file-header">
+            <span class="pm-file-name">${escapeHtml(name)}</span>
+            <span class="pm-file-open" role="button" tabindex="0">expand ↕</span>
+          </div>
+          <div class="pm-file-body"></div>
+        </div>
+      `;
+    }
+
+    function renderPmList() {
+      const list = document.getElementById("pm-agent-list");
+      list.innerHTML = agentNames().map((repo) => `
+        <div class="pm-agent-item ${repo === activePm ? "active" : ""}" data-pm="${repo}">
+          <img class="pm-agent-face" src="${avatarFor(repo)}" alt="${repoCodename(repo)}">
+          <div>
+            <div class="pm-agent-name">${escapeHtml(repoCodename(repo))}</div>
+            <div class="pm-agent-sub">${escapeHtml(repoRole(repo))}</div>
+          </div>
+        </div>
+      `).join("");
+
+      list.querySelectorAll("[data-pm]").forEach((item) => {
+        item.addEventListener("click", () => {
+          activePm = item.dataset.pm;
+          renderPmList();
+          renderPmPanel();
+        });
+      });
+    }
+
+    function renderPmPanel() {
+      const repo = activePm;
+      const panel = document.getElementById("pm-skills-panel");
+      const repoRoot = repos[repo]?.root || "";
+      const repoSkills = skillsData[repo] || [];
+      const sharedSkills = skillsData.shared || [];
+      const agentsPath = `${repoRoot}/AGENTS.md`;
+
+      const repoSkillHtml = repoSkills.length
+        ? `<div class="pm-file-list">${repoSkills.map((s) => makeFileItem(s.path, s.file)).join("")}</div>`
+        : '<div class="pm-skills-empty">No role-specific skills yet.</div>';
+      const sharedSkillHtml = sharedSkills.length
+        ? `<div class="pm-file-list">${sharedSkills.map((s) => makeFileItem(s.path, s.file)).join("")}</div>`
+        : '<div class="pm-skills-empty">No shared skills yet.</div>';
+
+      panel.innerHTML = `
+        <div class="pm-skills-header">
+          <img class="pm-skills-avatar" src="${avatarFor(repo)}" alt="${repoCodename(repo)}">
+          <div>
+            <div class="pm-skills-name">${escapeHtml(repoCodename(repo))}</div>
+            <div class="pm-skills-role">${escapeHtml(repoRole(repo))} · ${escapeHtml(repoSub(repo))}</div>
+          </div>
+        </div>
+        <div class="pm-section-label">Instructions</div>
+        <div class="pm-file-list">${makeFileItem(agentsPath, "AGENTS.md")}</div>
+        <div class="pm-section-label">Role skills</div>
+        ${repoSkillHtml}
+        <div class="pm-section-label">Shared meta-skills</div>
+        ${sharedSkillHtml}
+      `;
+    }
+
+    document.getElementById("pm-skills-panel").addEventListener("click", async (event) => {
+      const header = event.target.closest(".pm-file-header");
+      if (!header) return;
+      const item = header.closest(".pm-file-item");
+      const body = item.querySelector(".pm-file-body");
+      const path = item.dataset.path;
+      const isExpanded = item.classList.toggle("expanded");
+      body.style.display = isExpanded ? "block" : "none";
+
+      if (isExpanded && !body.dataset.loaded) {
+        body.innerHTML = "<pre>loading...</pre>";
+        try {
+          const response = await fetch(`${API}/file?path=${encodeURIComponent(path)}`);
+          const data = await response.json();
+          body.innerHTML = `<pre>${escapeHtml(data.content || "")}</pre>`;
+          body.dataset.loaded = "1";
+        } catch {
+          body.innerHTML = "<pre>failed to load</pre>";
+        }
+      }
+    });
+
+    function openPmModal() {
+      activePm = activePm || agentNames()[0] || null;
+      renderPmList();
+      renderPmPanel();
+      document.getElementById("pm-modal-overlay").classList.add("active");
+    }
+
+    function closePmModal() {
+      document.getElementById("pm-modal-overlay").classList.remove("active");
+    }
+
+    document.getElementById("settings-btn").addEventListener("click", openPmModal);
+    document.getElementById("pm-modal-close").addEventListener("click", closePmModal);
+    document.getElementById("pm-modal-overlay").addEventListener("click", (event) => {
+      if (event.target === document.getElementById("pm-modal-overlay")) closePmModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closePmModal();
+        document.getElementById("complete-overlay").classList.remove("active");
+      }
+    });
+    document.getElementById("complete-dismiss").addEventListener("click", () => {
+      document.getElementById("complete-overlay").classList.remove("active");
+    });
+    document.getElementById("complete-overlay").addEventListener("click", (event) => {
+      if (event.target === document.getElementById("complete-overlay"))
+        document.getElementById("complete-overlay").classList.remove("active");
+    });
+
+    function checkProjectComplete() {
+      if (projectCompleteShown) return;
+      const nonOrch = Object.keys(allData).filter((k) => k !== "orchestrator");
+      if (nonOrch.length === 0) return;
+      const hasArchived = nonOrch.some((k) => (allData[k]?.archive || []).length > 0);
+      if (!hasArchived) return;
+      const allDone = nonOrch.every((k) => (allData[k]?.backlog || []).length === 0);
+      if (!allDone) return;
+      projectCompleteShown = true;
+      document.getElementById("complete-overlay").classList.add("active");
+    }
+
+    async function boot() {
+      const [reposRes, dataRes] = await Promise.all([
+        fetch(`${API}/repos`),
+        fetch(`${API}/data`),
+        loadSkills()
+      ]);
+      repos = await reposRes.json();
+      allData = await dataRes.json();
+      renderFilters();
+      renderBoard();
+      connectSSE();
+      startPolling();
+    }
+
+    function connectSSE() {
+      const dot = document.getElementById("live-dot");
+      const source = new EventSource(`${API}/events`);
+
+      source.addEventListener("change", async () => {
+        try {
+          const res = await fetch(`${API}/data`);
+          allData = await res.json();
+          renderBoard();
+          showStatus("↻ Live update");
+        } catch { /* ignore transient fetch errors */ }
+      });
+
+      source.onopen = () => {
+        dot.classList.remove("disconnected");
+        dot.title = "Live updates connected";
+      };
+
+      source.onerror = () => {
+        dot.classList.add("disconnected");
+        dot.title = "Live updates reconnecting…";
+        // EventSource auto-reconnects using the retry interval set by the server
+      };
+    }
+
+    // Polling fallback — catches any file changes the SSE watcher misses.
+    // Runs every 4 seconds; only re-renders when data actually changed.
+    function startPolling() {
+      setInterval(async () => {
+        try {
+          const res = await fetch(`${API}/data`);
+          const fresh = await res.json();
+          if (JSON.stringify(fresh) !== JSON.stringify(allData)) {
+            allData = fresh;
+            renderBoard();
+            showStatus("↻ Refreshed");
+          }
+        } catch { /* ignore transient errors */ }
+      }, 2000);
+    }
+
+    boot().catch(() => showStatus("Load failed", true));
+  </script>
+</body>
+</html>
+

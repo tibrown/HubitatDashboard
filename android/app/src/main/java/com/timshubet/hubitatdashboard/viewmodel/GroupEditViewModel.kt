@@ -1,0 +1,59 @@
+package com.timshubet.hubitatdashboard.viewmodel
+
+import androidx.lifecycle.ViewModel
+import com.timshubet.hubitatdashboard.data.model.CustomGroupData
+import com.timshubet.hubitatdashboard.data.model.GroupConfig
+import com.timshubet.hubitatdashboard.data.model.TileType
+import com.timshubet.hubitatdashboard.data.repository.DeviceRepository
+import com.timshubet.hubitatdashboard.data.repository.GroupRepository
+import com.timshubet.hubitatdashboard.ui.edit.autoTileType
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
+import javax.inject.Inject
+
+@HiltViewModel
+class GroupEditViewModel @Inject constructor(
+    private val groupRepository: GroupRepository,
+    private val deviceRepository: DeviceRepository
+) : ViewModel() {
+
+    private val _isEditMode = MutableStateFlow(false)
+    val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+
+    val resolvedGroups: StateFlow<List<GroupConfig>> = groupRepository.resolvedGroupsFlow
+    val customGroups: StateFlow<List<CustomGroupData>> = groupRepository.customGroups
+
+    fun toggleEditMode() {
+        _isEditMode.value = !_isEditMode.value
+    }
+
+    fun addCustomGroup(name: String, iconName: String, parentId: String? = null) {
+        val id = UUID.randomUUID().toString()
+        groupRepository.addCustomGroup(CustomGroupData(id = id, displayName = name, iconName = iconName, parentId = parentId))
+    }
+
+    fun removeCustomGroup(id: String) = groupRepository.removeCustomGroup(id)
+
+    fun addDeviceToGroup(groupId: String, deviceId: String, label: String, tileType: TileType) {
+        groupRepository.addDeviceToGroup(groupId, deviceId)
+        val device = deviceRepository.devices.value[deviceId]
+        if (device != null && tileType != autoTileType(device)) {
+            groupRepository.setTileTypeOverride(deviceId, tileType)
+        }
+    }
+
+    fun removeDeviceFromGroup(groupId: String, deviceId: String) =
+        groupRepository.removeDeviceFromGroup(groupId, deviceId)
+
+    fun moveGroupUp(id: String) = groupRepository.moveGroupUp(id)
+    fun moveGroupDown(id: String) = groupRepository.moveGroupDown(id)
+
+    fun setTileOrder(groupId: String, orderedIds: List<String>) =
+        groupRepository.setTileOrder(groupId, orderedIds)
+
+    fun setTileTypeOverride(deviceId: String, tileType: TileType) =
+        groupRepository.setTileTypeOverride(deviceId, tileType)
+}

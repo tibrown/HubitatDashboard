@@ -124,12 +124,13 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Cloud Hub URL
+            // Cloud Hub ID
             OutlinedTextField(
-                value = uiState.cloudHubUrl,
-                onValueChange = { viewModel.onCloudHubUrlChange(it) },
-                label = { Text("Cloud Hub URL") },
-                placeholder = { Text("https://cloud.hubitat.com/api/.../apps/...") },
+                value = uiState.cloudHubId,
+                onValueChange = { viewModel.onCloudHubIdChange(it) },
+                label = { Text("Cloud Hub ID") },
+                placeholder = { Text("606cf154-46af-4877-adb4-680b40e940c0") },
+                supportingText = { Text("Found in Hubitat → Apps → Maker API → Cloud Access") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier.fillMaxWidth()
             )

@@ -1,0 +1,17 @@
+{
+  "name": "Raava Dev Team Board",
+  "short_name": "Raava",
+  "description": "Autonomous dev team Kanban board",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1008",
+  "theme_color": "#c084fc",
+  "icons": [
+    {
+      "src": "/Raava-icon.png",
+      "type": "image/png",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

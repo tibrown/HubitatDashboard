@@ -1,0 +1,118 @@
+{
+  "backlog": [
+    {
+      "id": 17006,
+      "title": "Implement SettingsScreen and SettingsViewModel",
+      "notes": "Material 3 Settings form: local hub IP, maker app ID, access token (masked), cloud URL, connection mode segmented buttons, PIN + confirm PIN, Save + Test Connection. Onboarding: redirect to Settings when no hub configured.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-settings.md",
+      "status": "review",
+      "depends_on": [
+        17001
+      ]
+    },
+    {
+      "id": 17007,
+      "title": "Implement app shell, navigation, and DeviceViewModel",
+      "notes": "MainScreen with ModalNavigationDrawer, Scaffold (TopAppBar + BottomNav), NavHost. GroupBottomNav (5 fixed tabs + More), GroupDrawer (all 14 groups), HubitatTopBar (title, theme toggle, settings). DeviceViewModel wraps DeviceRepository and exposes all StateFlows plus snackbarMessage.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-shell.md",
+      "status": "review",
+      "depends_on": [
+        17005,
+        17006
+      ]
+    },
+    {
+      "id": 17008,
+      "title": "Implement SystemStatusRow",
+      "notes": "Horizontal LazyRow below TopBar: HSM chip (color-coded), Mode chip, Connection chip (Local/Cloud/Reconnecting), and 6 connector chips (device IDs 486,905,1227,1268,1327,1316). All chips use Material 3 AssistChip/SuggestionChip.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-system-status.md",
+      "status": "review",
+      "depends_on": [
+        17007
+      ]
+    },
+    {
+      "id": 17009,
+      "title": "Implement GroupScreen and groups.kt config",
+      "notes": "Port all 14 groups from frontend/src/config/groups.ts to Kotlin groups.kt. GroupScreen renders LazyVerticalGrid (2 columns) of TileCard composables for the given groupId. TileCard routes to correct tile type. Pull-to-refresh triggers viewModel.refresh().",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-group-screen.md",
+      "status": "review",
+      "depends_on": [
+        17007
+      ]
+    },
+    {
+      "id": 17010,
+      "title": "Implement SwitchTile, ConnectorTile, and DimmerTile",
+      "notes": "SwitchTile: power icon, tap to toggle on/off. ConnectorTile: toggle with colored dot indicator. DimmerTile: toggle + always-visible level slider sending setLevel command. All show loading indicator during command in-flight.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-tiles-basic.md",
+      "status": "review",
+      "depends_on": [
+        17009
+      ]
+    },
+    {
+      "id": 17011,
+      "title": "Implement RGBWTile with colour picker",
+      "notes": "RGBW tile: color swatch, on/off toggle, brightness slider, HSB color picker (hue+saturation sliders or full wheel). Sends setColor with Hubitat map format [hue:H, saturation:S, level:L].",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-tile-rgbw.md",
+      "status": "review",
+      "depends_on": [
+        17009
+      ]
+    },
+    {
+      "id": 17012,
+      "title": "Implement sensor tiles (contact, motion, temp, power, presence, battery, ring-detection)",
+      "notes": "7 read-only tile composables. Each shows correct icon, color-coded state, and numeric value where applicable. BatteryTile uses color thresholds (green/amber/red). All render a greyed placeholder when device == null.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-tiles-sensor.md",
+      "status": "review",
+      "depends_on": [
+        17009
+      ]
+    },
+    {
+      "id": 17013,
+      "title": "Implement control tiles (button, lock, hub-variable, hsm, mode) and PinDialog",
+      "notes": "PinDialog: Material 3 AlertDialog with 4-digit masked input and invalid PIN error state. ButtonTile: push command. LockTile: PIN-protected lock/unlock. HubVariableTile: editable via AlertDialog. HsmTile: mode picker + PIN. ModeTile: mode list + PIN.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-tiles-control.md",
+      "status": "review",
+      "depends_on": [
+        17009
+      ]
+    },
+    {
+      "id": 17014,
+      "title": "Implement polish (theme, group reorder, error banner, icon, APK docs)",
+      "notes": "Dynamic dark/light theme with manual override persisted in DataStore. Group reorder with drag handle in drawer persisted to DataStore. No-connection banner after 30s RECONNECTING. Custom adaptive launcher icon. android/README.md with sideload build instructions.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-polish.md",
+      "status": "review",
+      "depends_on": [
+        17008,
+        17010,
+        17011,
+        17012,
+        17013
+      ]
+    }
+  ],
+  "archive": []
+}

@@ -1,0 +1,156 @@
+{
+  "backlog": [
+    {
+      "id": 17001,
+      "title": "Scaffold Android project (Gradle, Hilt, Manifest)",
+      "notes": "Create the full android/ project structure: settings.gradle.kts, app/build.gradle.kts, AndroidManifest.xml, HubitatApp @HiltAndroidApp, MainActivity. All deps pinned, ./gradlew assembleDebug must succeed.",
+      "owner": "architect",
+      "priority": "medium",
+      "rd": "rds/rd-android-scaffold.md",
+      "status": "todo",
+      "depends_on": []
+    },
+    {
+      "id": 17002,
+      "title": "Implement Kotlin data models",
+      "notes": "Create all 9 data class files in data/model/: DeviceState, SSEEvent, TileType (15 values), TileConfig, GroupConfig, ConnectionType, HsmMode, HubMode, HubVariable.",
+      "owner": "api-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-data-models.md",
+      "status": "todo",
+      "depends_on": [17001]
+    },
+    {
+      "id": 17003,
+      "title": "Implement ConnectionResolver and SettingsRepository",
+      "notes": "ConnectionResolver resolves base URL for LOCAL/CLOUD/AUTO modes. SettingsRepository wraps EncryptedSharedPreferences. NetworkModule provides OkHttpClient via Hilt.",
+      "owner": "api-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-connection-resolver.md",
+      "status": "todo",
+      "depends_on": [17002]
+    },
+    {
+      "id": 17004,
+      "title": "Implement HubitatApiService and SseClient",
+      "notes": "Retrofit interface with all 10 Maker API endpoints. OkHttp SseClient with exponential backoff reconnect. ApiModule via Hilt.",
+      "owner": "api-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-api-service.md",
+      "status": "todo",
+      "depends_on": [17003]
+    },
+    {
+      "id": 17005,
+      "title": "Implement DeviceRepository and PinRepository",
+      "notes": "DeviceRepository merges REST + SSE into StateFlow. PinRepository uses jBCrypt for local PIN hash. RepositoryModule via Hilt.",
+      "owner": "api-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-repositories.md",
+      "status": "todo",
+      "depends_on": [17004]
+    },
+    {
+      "id": 17006,
+      "title": "Implement SettingsScreen and SettingsViewModel",
+      "notes": "Material 3 Settings form with all hub config fields, connection mode picker, PIN setup. Onboarding redirect. Test Connection button.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-settings.md",
+      "status": "todo",
+      "depends_on": [17001]
+    },
+    {
+      "id": 17007,
+      "title": "Implement app shell, navigation, and DeviceViewModel",
+      "notes": "MainScreen with ModalNavigationDrawer, Scaffold, NavHost. GroupBottomNav + GroupDrawer + HubitatTopBar. DeviceViewModel wraps repository StateFlows.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-shell.md",
+      "status": "todo",
+      "depends_on": [17005, 17006]
+    },
+    {
+      "id": 17008,
+      "title": "Implement SystemStatusRow",
+      "notes": "Horizontal chip row: HSM, Mode, Connection, 6 connector chips. Color-coded states. Scrollable LazyRow.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-system-status.md",
+      "status": "todo",
+      "depends_on": [17007]
+    },
+    {
+      "id": 17009,
+      "title": "Implement GroupScreen and groups.kt config",
+      "notes": "Port all 14 groups from groups.ts to Kotlin. GroupScreen LazyVerticalGrid 2-column TileCards. Pull-to-refresh.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-group-screen.md",
+      "status": "todo",
+      "depends_on": [17007]
+    },
+    {
+      "id": 17010,
+      "title": "Implement SwitchTile, ConnectorTile, and DimmerTile",
+      "notes": "SwitchTile toggles on/off. ConnectorTile with colored dot. DimmerTile with level slider.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-tiles-basic.md",
+      "status": "todo",
+      "depends_on": [17009]
+    },
+    {
+      "id": 17011,
+      "title": "Implement RGBWTile with colour picker",
+      "notes": "Color swatch, on/off toggle, brightness slider, HSB color picker. Sends setColor in Hubitat map format.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-tile-rgbw.md",
+      "status": "todo",
+      "depends_on": [17009]
+    },
+    {
+      "id": 17012,
+      "title": "Implement sensor tiles (contact, motion, temp, power, presence, battery, ring-detection)",
+      "notes": "7 read-only tile composables with correct icons, colors, and numeric readouts.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-tiles-sensor.md",
+      "status": "todo",
+      "depends_on": [17009]
+    },
+    {
+      "id": 17013,
+      "title": "Implement control tiles (button, lock, hub-variable, hsm, mode) and PinDialog",
+      "notes": "PinDialog with invalid PIN error. ButtonTile push. LockTile PIN-protected. HubVariableTile editable. HsmTile and ModeTile with mode pickers + PIN.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-tiles-control.md",
+      "status": "todo",
+      "depends_on": [17009]
+    },
+    {
+      "id": 17014,
+      "title": "Implement polish (theme, group reorder, error banner, icon, APK docs)",
+      "notes": "Dynamic theme with DataStore override. Group drag-reorder. No-connection banner at 30s. Custom adaptive icon. android/README.md with sideload instructions.",
+      "owner": "frontend-dev",
+      "priority": "medium",
+      "rd": "rds/rd-android-polish.md",
+      "status": "todo",
+      "depends_on": [17008, 17010, 17011, 17012, 17013]
+    },
+    {
+      "id": 17015,
+      "title": "Write QA test plan and functional validation checklist",
+      "notes": "Create android/QA_TEST_PLAN.md with 9 test sections covering all 15 tile types, dual-connection modes, PIN flows, SSE, theme, and group reordering.",
+      "owner": "qa-tester",
+      "priority": "medium",
+      "rd": "rds/rd-android-qa.md",
+      "status": "todo",
+      "depends_on": [17014]
+    }
+  ],
+  "archive": []
+}
+

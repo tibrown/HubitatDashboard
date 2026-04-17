@@ -1,0 +1,11 @@
+{
+  "_comment": "Copy this file to agent-names.json and customize agent display names for your team. agent-names.json is gitignored so your names stay local. The orchestrator is always Raava.",
+  "orchestrator": "Raava",
+  "project-manager": "Project Manager",
+  "backend-dev": "Backend Dev",
+  "dba": "DBA",
+  "frontend-dev": "Frontend Dev",
+  "architect": "Architect",
+  "qa-tester": "QA Tester",
+  "research": "Research"
+}

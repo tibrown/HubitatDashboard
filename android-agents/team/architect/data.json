@@ -1,0 +1,16 @@
+{
+  "backlog": [
+    {
+      "id": 17001,
+      "title": "Scaffold Android project (Gradle, Hilt, Manifest)",
+      "notes": "Create the full android/ project structure: settings.gradle.kts, app/build.gradle.kts, AndroidManifest.xml, HubitatApp @HiltAndroidApp, MainActivity. All deps pinned, ./gradlew assembleDebug must succeed.",
+      "owner": "architect",
+      "priority": "high",
+      "rd": "../orchestrator/rds/rd-android-scaffold.md",
+      "status": "review",
+      "depends_on": []
+    }
+  ],
+  "archive": []
+}
+

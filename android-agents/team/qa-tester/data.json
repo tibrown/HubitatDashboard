@@ -1,0 +1,17 @@
+{
+  "backlog": [
+    {
+      "id": 17015,
+      "title": "Write QA test plan and functional validation checklist",
+      "notes": "Create android/QA_TEST_PLAN.md with 9 test sections: build verification, onboarding, connection modes, device state display, all 15 tile interactions, PIN security, real-time SSE, theme, and group reordering.",
+      "owner": "qa-tester",
+      "priority": "medium",
+      "rd": "../orchestrator/rds/rd-android-qa.md",
+      "status": "review",
+      "depends_on": [
+        17014
+      ]
+    }
+  ],
+  "archive": []
+}

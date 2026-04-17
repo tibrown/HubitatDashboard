@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="32" fill="#040a0d"/>
+  <!-- Owl body -->
+  <ellipse cx="32" cy="38" rx="14" ry="16" fill="#0a1a20" stroke="#e2e8f0" stroke-width="1.2"/>
+  <!-- Wings -->
+  <path d="M18 36 Q12 28 16 22 Q20 30 18 36Z" fill="#e2e8f0" opacity="0.35"/>
+  <path d="M46 36 Q52 28 48 22 Q44 30 46 36Z" fill="#e2e8f0" opacity="0.35"/>
+  <!-- Owl face disc -->
+  <ellipse cx="32" cy="32" rx="10" ry="10" fill="#071218" stroke="#e2e8f0" stroke-width="1" opacity="0.9"/>
+  <!-- Large owl eyes — white iris, dark pupil -->
+  <circle cx="27" cy="30" r="4" fill="#e2e8f0" opacity="0.95"/>
+  <circle cx="37" cy="30" r="4" fill="#e2e8f0" opacity="0.95"/>
+  <circle cx="27" cy="30" r="2" fill="#040a0d"/>
+  <circle cx="37" cy="30" r="2" fill="#040a0d"/>
+  <!-- Eye glint -->
+  <circle cx="28" cy="29" r="0.7" fill="white"/>
+  <circle cx="38" cy="29" r="0.7" fill="white"/>
+  <!-- Beak -->
+  <path d="M30 34 L32 37 L34 34 Z" fill="#fbbf24" opacity="0.85"/>
+  <!-- Ear tufts -->
+  <path d="M24 22 Q22 16 26 14 Q25 19 24 22Z" fill="#e2e8f0" opacity="0.8"/>
+  <path d="M40 22 Q42 16 38 14 Q39 19 40 22Z" fill="#e2e8f0" opacity="0.8"/>
+  <!-- Feather markings on chest -->
+  <path d="M26 42 Q32 38 38 42" fill="none" stroke="#e2e8f0" stroke-width="0.8" opacity="0.4"/>
+  <path d="M27 46 Q32 43 37 46" fill="none" stroke="#e2e8f0" stroke-width="0.8" opacity="0.3"/>
+</svg>

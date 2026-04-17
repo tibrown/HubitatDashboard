@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="32" fill="#040f1a"/>
+
+  <!-- Aang's bald head — large, round, centered -->
+  <circle cx="32" cy="33" r="19" fill="#1a3040" stroke="#7dd3fc" stroke-width="1.4"/>
+
+  <!-- Air Nomad collar / orange robe peek at bottom -->
+  <path d="M15 50 Q20 44 32 44 Q44 44 49 50 Q42 56 32 56 Q22 56 15 50Z"
+        fill="#92400e" opacity="0.7"/>
+  <path d="M17 52 Q24 46 32 46 Q40 46 47 52"
+        fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+
+  <!-- Eyes — open, expressive -->
+  <circle cx="25" cy="36" r="3" fill="#7dd3fc" opacity="0.9"/>
+  <circle cx="39" cy="36" r="3" fill="#7dd3fc" opacity="0.9"/>
+  <circle cx="25" cy="36" r="1.4" fill="#040f1a"/>
+  <circle cx="39" cy="36" r="1.4" fill="#040f1a"/>
+  <!-- Eye shine -->
+  <circle cx="25.8" cy="35.2" r="0.7" fill="white"/>
+  <circle cx="39.8" cy="35.2" r="0.7" fill="white"/>
+
+  <!-- Friendly smile -->
+  <path d="M26 42 Q32 47 38 42" fill="none" stroke="#7dd3fc" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- The arrow tattoo — centerpiece, pointing down forehead -->
+  <!-- Arrow shaft from top of head down -->
+  <line x1="32" y1="14" x2="32" y2="30" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round"/>
+  <!-- Arrow barbs at top -->
+  <path d="M32 14 L27 21 M32 14 L37 21"
+        fill="none" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

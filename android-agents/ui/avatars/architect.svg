@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="32" fill="#1a1200"/>
+  <!-- Tea cup -->
+  <path d="M20 36 Q20 46 32 46 Q44 46 44 36 L42 28 L22 28 Z" fill="#78350f" stroke="#fbbf24" stroke-width="1.2"/>
+  <path d="M22 28 L42 28 Q40 24 32 24 Q24 24 22 28Z" fill="#fbbf24" opacity="0.3"/>
+  <!-- Cup handle -->
+  <path d="M44 30 Q52 30 52 36 Q52 42 44 42" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+  <!-- Steam wisps -->
+  <path d="M27 24 Q25 18 27 12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M32 22 Q30 16 32 10" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M37 24 Q39 18 37 12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <!-- White lotus -->
+  <circle cx="32" cy="36" r="4" fill="#fbbf24" opacity="0.2"/>
+  <path d="M32 32 Q34 34 32 36 Q30 34 32 32Z" fill="#fbbf24" opacity="0.7"/>
+  <path d="M28 34 Q30 34 32 36 Q30 38 28 34Z" fill="#fbbf24" opacity="0.7"/>
+  <path d="M36 34 Q34 34 32 36 Q34 38 36 34Z" fill="#fbbf24" opacity="0.7"/>
+</svg>

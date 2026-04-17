@@ -34,7 +34,7 @@ class SettingsViewModel @Inject constructor(
                 localHubIp = settingsRepository.localHubIp,
                 makerAppId = settingsRepository.makerAppId,
                 makerToken = settingsRepository.makerToken,
-                cloudHubUrl = settingsRepository.cloudHubUrl,
+                cloudHubId = settingsRepository.cloudHubId,
                 connectionModeIndex = when (settingsRepository.connectionMode) {
                     ConnectionMode.LOCAL -> 0
                     ConnectionMode.CLOUD -> 1
@@ -47,7 +47,7 @@ class SettingsViewModel @Inject constructor(
     fun onLocalHubIpChange(value: String) = _uiState.update { it.copy(localHubIp = value, localHubIpError = null) }
     fun onMakerAppIdChange(value: String) = _uiState.update { it.copy(makerAppId = value) }
     fun onMakerTokenChange(value: String) = _uiState.update { it.copy(makerToken = value) }
-    fun onCloudHubUrlChange(value: String) = _uiState.update { it.copy(cloudHubUrl = value) }
+    fun onCloudHubIdChange(value: String) = _uiState.update { it.copy(cloudHubId = value) }
     fun onConnectionModeChange(index: Int) = _uiState.update { it.copy(connectionModeIndex = index) }
     fun onPinChange(value: String) = _uiState.update { it.copy(pin = value, pinError = null) }
     fun onConfirmPinChange(value: String) = _uiState.update { it.copy(confirmPin = value) }
@@ -56,8 +56,8 @@ class SettingsViewModel @Inject constructor(
     fun validate(): Boolean {
         val state = _uiState.value
         var valid = true
-        if (state.localHubIp.isBlank() && state.cloudHubUrl.isBlank()) {
-            _uiState.update { it.copy(localHubIpError = "Enter at least a Local IP or Cloud URL") }
+        if (state.localHubIp.isBlank() && state.cloudHubId.isBlank()) {
+            _uiState.update { it.copy(localHubIpError = "Enter at least a Local IP or Cloud Hub ID") }
             valid = false
         }
         if (state.pin.isNotEmpty() && state.pin != state.confirmPin) {
@@ -81,7 +81,7 @@ class SettingsViewModel @Inject constructor(
                 localHubIp = state.localHubIp,
                 makerAppId = state.makerAppId,
                 makerToken = state.makerToken,
-                cloudHubUrl = state.cloudHubUrl,
+                cloudHubId = state.cloudHubId,
                 connectionMode = mode
             )
             if (state.pin.isNotEmpty()) {
@@ -120,7 +120,7 @@ class SettingsViewModel @Inject constructor(
                 localHubIp = state.localHubIp,
                 makerAppId = state.makerAppId,
                 makerToken = state.makerToken,
-                cloudHubUrl = state.cloudHubUrl,
+                cloudHubId = state.cloudHubId,
                 connectionMode = mode
             )
             val (success, message) = connectionResolver.testConnection()

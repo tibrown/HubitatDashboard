@@ -1,0 +1,65 @@
+{
+  "backlog": [
+    {
+      "rd": "",
+      "title": "Research: Jetpack Compose + Material 3",
+      "priority": "high",
+      "status": "review",
+      "notes": "Pre-dev research for architect, frontend-dev. Tasks: 17001, 17006-17014.",
+      "owner": "research",
+      "id": 1776365964770,
+      "depends_on": []
+    },
+    {
+      "rd": "",
+      "title": "Research: Hilt Android DI",
+      "priority": "high",
+      "status": "review",
+      "notes": "Pre-dev research for architect, api-dev. Tasks: 17001-17005.",
+      "owner": "research",
+      "id": 1776365964771,
+      "depends_on": []
+    },
+    {
+      "rd": "",
+      "title": "Research: Retrofit + OkHttp SSE",
+      "priority": "high",
+      "status": "review",
+      "notes": "Pre-dev research for api-dev. Tasks: 17003, 17004.",
+      "owner": "research",
+      "id": 1776365964772,
+      "depends_on": []
+    },
+    {
+      "rd": "",
+      "title": "Research: DataStore + EncryptedPrefs",
+      "priority": "high",
+      "status": "review",
+      "notes": "Pre-dev research for api-dev, frontend-dev. Tasks: 17003, 17006, 17014.",
+      "owner": "research",
+      "id": 1776365964773,
+      "depends_on": []
+    },
+    {
+      "rd": "",
+      "title": "Research: Navigation Compose",
+      "priority": "medium",
+      "status": "review",
+      "notes": "Pre-dev research for frontend-dev. Tasks: 17007.",
+      "owner": "research",
+      "id": 1776365964774,
+      "depends_on": []
+    },
+    {
+      "rd": "",
+      "title": "Research: BCrypt on Android",
+      "priority": "medium",
+      "status": "review",
+      "notes": "Pre-dev research for api-dev. Tasks: 17005.",
+      "owner": "research",
+      "id": 1776365964775,
+      "depends_on": []
+    }
+  ],
+  "archive": []
+}

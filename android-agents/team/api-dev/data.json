@@ -1,0 +1,53 @@
+{
+  "backlog": [
+    {
+      "id": 17002,
+      "title": "Implement Kotlin data models",
+      "notes": "Create all 9 data class files in data/model/: DeviceState, SSEEvent, TileType (15 values), TileConfig, GroupConfig, ConnectionType, HsmMode, HubMode, HubVariable. Must compile cleanly.",
+      "owner": "api-dev",
+      "priority": "high",
+      "rd": "../orchestrator/rds/rd-android-data-models.md",
+      "status": "review",
+      "depends_on": [
+        17001
+      ]
+    },
+    {
+      "id": 17003,
+      "title": "Implement ConnectionResolver and SettingsRepository",
+      "notes": "ConnectionResolver resolves base URL for LOCAL/CLOUD/AUTO modes (AUTO probes local with 2s timeout, falls back to cloud). SettingsRepository wraps EncryptedSharedPreferences. NetworkModule provides OkHttpClient via Hilt.",
+      "owner": "api-dev",
+      "priority": "high",
+      "rd": "../orchestrator/rds/rd-android-connection-resolver.md",
+      "status": "review",
+      "depends_on": [
+        17002
+      ]
+    },
+    {
+      "id": 17004,
+      "title": "Implement HubitatApiService and SseClient",
+      "notes": "Retrofit interface with all 10 Maker API endpoints. OkHttp SseClient with exponential backoff reconnect. ApiModule provides Retrofit and SseClient via Hilt.",
+      "owner": "api-dev",
+      "priority": "high",
+      "rd": "../orchestrator/rds/rd-android-api-service.md",
+      "status": "review",
+      "depends_on": [
+        17003
+      ]
+    },
+    {
+      "id": 17005,
+      "title": "Implement DeviceRepository and PinRepository",
+      "notes": "DeviceRepository merges REST + SSE into StateFlow<Map<String,DeviceState>>, exposes hsmStatus/modes/hubVariables/connectionStatus, handles sendCommand/setHsmMode/setMode/setHubVariable. PinRepository uses jBCrypt for local PIN hash storage and verification.",
+      "owner": "api-dev",
+      "priority": "high",
+      "rd": "../orchestrator/rds/rd-android-repositories.md",
+      "status": "review",
+      "depends_on": [
+        17004
+      ]
+    }
+  ],
+  "archive": []
+}

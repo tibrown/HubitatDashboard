@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="32" fill="#1a0a0a"/>
+  <!-- Flame crown -->
+  <path d="M24 22 Q26 14 32 12 Q38 14 40 22 Q36 16 34 20 Q32 10 30 20 Q28 16 24 22Z" fill="#f87171" opacity="0.9"/>
+  <path d="M28 22 Q30 16 32 18 Q34 16 36 22 Q33 18 32 20 Q31 18 28 22Z" fill="#fbbf24" opacity="0.7"/>
+  <!-- Face -->
+  <circle cx="32" cy="34" r="13" fill="#2a1010" stroke="#f87171" stroke-width="1.5"/>
+  <!-- Scar over left eye — iconic Zuko mark -->
+  <path d="M22 28 Q24 30 24 33" fill="none" stroke="#991b1b" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- Eyes -->
+  <circle cx="27" cy="31" r="2" fill="#f87171"/>
+  <circle cx="37" cy="31" r="2" fill="#f87171"/>
+  <!-- Determined mouth -->
+  <line x1="27" y1="38" x2="37" y2="38" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
