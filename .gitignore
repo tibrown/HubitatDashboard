@@ -1,10 +1,16 @@
 node_modules/
 dist/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
 backend/config.json
 *.local
 .env
 .env.*
 !.env.example
 *.log
+*.bin
+*.lock
 .DS_Store
 .dashboard-pids.json
