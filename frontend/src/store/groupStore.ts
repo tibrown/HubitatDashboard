@@ -3,6 +3,18 @@ import { persist } from 'zustand/middleware'
 import { groups as staticGroups } from '../config/groups'
 import type { TileType } from '../types'
 
+/** Canonical JSON shape shared with the Android app */
+export interface GroupExportPayload {
+  version: number
+  customGroups: CustomGroup[]
+  groupAdditions: Record<string, string[]>
+  groupExclusions: Record<string, string[]>
+  groupOrder: string[]
+  childGroupOrder: Record<string, string[]>
+  tileTypeOverrides: Record<string, string>
+  tileOrder: Record<string, string[]>
+}
+
 export interface CustomGroup {
   id: string
   displayName: string
@@ -38,6 +50,8 @@ interface GroupStore {
   moveSubGroupDown: (parentId: string, id: string) => void
   setTileTypeOverride: (deviceId: string, tileType: TileType) => void
   setTileOrder: (groupId: string, orderedIds: string[]) => void
+  /** Replaces all dynamic config with imported data. Static group IDs are preserved in groupOrder. */
+  importState: (data: GroupExportPayload) => void
 }
 
 const STATIC_GROUP_IDS = staticGroups.map((g) => g.id)
@@ -201,6 +215,24 @@ export const useGroupStore = create<GroupStore>()(
 
       setTileOrder: (groupId, orderedIds) =>
         set((s) => ({ tileOrder: { ...s.tileOrder, [groupId]: orderedIds } })),
+
+      importState: (data) =>
+        set(() => {
+          // Preserve static group IDs not present in the import
+          const mergedOrder = [...data.groupOrder]
+          for (const id of STATIC_GROUP_IDS) {
+            if (!mergedOrder.includes(id)) mergedOrder.push(id)
+          }
+          return {
+            customGroups:      data.customGroups,
+            groupAdditions:    data.groupAdditions,
+            groupExclusions:   data.groupExclusions,
+            groupOrder:        mergedOrder,
+            childGroupOrder:   data.childGroupOrder,
+            tileTypeOverrides: data.tileTypeOverrides as Record<string, TileType>,
+            tileOrder:         data.tileOrder,
+          }
+        }),
     }),
     {
       name: 'hubitat-group-store',

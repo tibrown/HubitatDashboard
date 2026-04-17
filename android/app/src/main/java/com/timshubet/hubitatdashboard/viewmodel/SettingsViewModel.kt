@@ -1,0 +1,135 @@
+package com.timshubet.hubitatdashboard.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.timshubet.hubitatdashboard.data.export.GroupExportManager
+import com.timshubet.hubitatdashboard.data.model.ConnectionMode
+import com.timshubet.hubitatdashboard.data.repository.ConnectionResolver
+import com.timshubet.hubitatdashboard.data.repository.PinRepository
+import com.timshubet.hubitatdashboard.data.repository.SettingsRepository
+import com.timshubet.hubitatdashboard.ui.settings.SettingsUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val settingsRepository: SettingsRepository,
+    private val connectionResolver: ConnectionResolver,
+    private val pinRepository: PinRepository,
+    private val groupExportManager: GroupExportManager
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    init {
+        // Pre-populate from saved settings
+        _uiState.update {
+            it.copy(
+                localHubIp = settingsRepository.localHubIp,
+                makerAppId = settingsRepository.makerAppId,
+                makerToken = settingsRepository.makerToken,
+                cloudHubUrl = settingsRepository.cloudHubUrl,
+                connectionModeIndex = when (settingsRepository.connectionMode) {
+                    ConnectionMode.LOCAL -> 0
+                    ConnectionMode.CLOUD -> 1
+                    ConnectionMode.AUTO -> 2
+                }
+            )
+        }
+    }
+
+    fun onLocalHubIpChange(value: String) = _uiState.update { it.copy(localHubIp = value, localHubIpError = null) }
+    fun onMakerAppIdChange(value: String) = _uiState.update { it.copy(makerAppId = value) }
+    fun onMakerTokenChange(value: String) = _uiState.update { it.copy(makerToken = value) }
+    fun onCloudHubUrlChange(value: String) = _uiState.update { it.copy(cloudHubUrl = value) }
+    fun onConnectionModeChange(index: Int) = _uiState.update { it.copy(connectionModeIndex = index) }
+    fun onPinChange(value: String) = _uiState.update { it.copy(pin = value, pinError = null) }
+    fun onConfirmPinChange(value: String) = _uiState.update { it.copy(confirmPin = value) }
+    fun clearSnackbar() = _uiState.update { it.copy(snackbarMessage = null) }
+
+    fun validate(): Boolean {
+        val state = _uiState.value
+        var valid = true
+        if (state.localHubIp.isBlank() && state.cloudHubUrl.isBlank()) {
+            _uiState.update { it.copy(localHubIpError = "Enter at least a Local IP or Cloud URL") }
+            valid = false
+        }
+        if (state.pin.isNotEmpty() && state.pin != state.confirmPin) {
+            _uiState.update { it.copy(pinError = "PINs do not match") }
+            valid = false
+        }
+        return valid
+    }
+
+    fun save() {
+        if (!validate()) return
+        val state = _uiState.value
+        val mode = when (state.connectionModeIndex) {
+            0 -> ConnectionMode.LOCAL
+            1 -> ConnectionMode.CLOUD
+            else -> ConnectionMode.AUTO
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            settingsRepository.saveAll(
+                localHubIp = state.localHubIp,
+                makerAppId = state.makerAppId,
+                makerToken = state.makerToken,
+                cloudHubUrl = state.cloudHubUrl,
+                connectionMode = mode
+            )
+            if (state.pin.isNotEmpty()) {
+                pinRepository.setPin(state.pin)
+            }
+            _uiState.update { it.copy(isLoading = false, saveSuccess = true) }
+        }
+    }
+
+    /** Returns the canonical export JSON string to write to a file. */
+    fun exportConfig(): String = groupExportManager.buildExportJson()
+
+    /** Parses and applies a previously exported JSON config. */
+    fun importConfig(json: String) {
+        groupExportManager.parseImportJson(json)
+            .onSuccess { data ->
+                groupExportManager.importConfig(data)
+                _uiState.update { it.copy(snackbarMessage = "Config imported successfully") }
+            }
+            .onFailure { e ->
+                _uiState.update { it.copy(snackbarMessage = "Import failed: ${e.message}") }
+            }
+    }
+
+    fun testConnection() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val state = _uiState.value
+            val mode = when (state.connectionModeIndex) {
+                0 -> ConnectionMode.LOCAL
+                1 -> ConnectionMode.CLOUD
+                else -> ConnectionMode.AUTO
+            }
+            // Save current form values so ConnectionResolver reads them during test
+            settingsRepository.saveAll(
+                localHubIp = state.localHubIp,
+                makerAppId = state.makerAppId,
+                makerToken = state.makerToken,
+                cloudHubUrl = state.cloudHubUrl,
+                connectionMode = mode
+            )
+            val (success, message) = connectionResolver.testConnection()
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    snackbarMessage = if (success) "✓ $message" else "✗ $message"
+                )
+            }
+        }
+    }
+}
