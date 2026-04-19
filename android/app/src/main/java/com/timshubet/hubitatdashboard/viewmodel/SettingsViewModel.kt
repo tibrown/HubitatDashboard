@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.timshubet.hubitatdashboard.data.export.GroupExportManager
 import com.timshubet.hubitatdashboard.data.model.ConnectionMode
 import com.timshubet.hubitatdashboard.data.repository.ConnectionResolver
-import com.timshubet.hubitatdashboard.data.repository.PinRepository
 import com.timshubet.hubitatdashboard.data.repository.SettingsRepository
 import com.timshubet.hubitatdashboard.ui.settings.SettingsUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +19,6 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val connectionResolver: ConnectionResolver,
-    private val pinRepository: PinRepository,
     private val groupExportManager: GroupExportManager
 ) : ViewModel() {
 
@@ -49,22 +47,15 @@ class SettingsViewModel @Inject constructor(
     fun onMakerTokenChange(value: String) = _uiState.update { it.copy(makerToken = value) }
     fun onCloudHubIdChange(value: String) = _uiState.update { it.copy(cloudHubId = value) }
     fun onConnectionModeChange(index: Int) = _uiState.update { it.copy(connectionModeIndex = index) }
-    fun onPinChange(value: String) = _uiState.update { it.copy(pin = value, pinError = null) }
-    fun onConfirmPinChange(value: String) = _uiState.update { it.copy(confirmPin = value) }
     fun clearSnackbar() = _uiState.update { it.copy(snackbarMessage = null) }
 
     fun validate(): Boolean {
         val state = _uiState.value
-        var valid = true
         if (state.localHubIp.isBlank() && state.cloudHubId.isBlank()) {
             _uiState.update { it.copy(localHubIpError = "Enter at least a Local IP or Cloud Hub ID") }
-            valid = false
+            return false
         }
-        if (state.pin.isNotEmpty() && state.pin != state.confirmPin) {
-            _uiState.update { it.copy(pinError = "PINs do not match") }
-            valid = false
-        }
-        return valid
+        return true
     }
 
     fun save() {
@@ -84,9 +75,6 @@ class SettingsViewModel @Inject constructor(
                 cloudHubId = state.cloudHubId,
                 connectionMode = mode
             )
-            if (state.pin.isNotEmpty()) {
-                pinRepository.setPin(state.pin)
-            }
             _uiState.update { it.copy(isLoading = false, saveSuccess = true) }
         }
     }

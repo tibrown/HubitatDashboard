@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Shield, ShieldOff, Moon, Clock, Wifi, WifiOff, RefreshCw, Settings, Menu } from 'lucide-react'
 import { useHsmStatus, useCurrentMode, useConnectionStatus, useDeviceStore } from '../store/deviceStore'
+import { useCommand } from '../hooks/useCommand'
 
 function HsmBadge() {
   const status = useHsmStatus()
@@ -59,18 +60,28 @@ function ConnectionBadge() {
 function ConnectorBadge({ deviceId, label }: { deviceId: string; label: string }) {
   const attr = useDeviceStore((s) => s.devices[deviceId]?.attributes['switch'])
   const isOn = attr === 'on'
+  const [execute] = useCommand()
+
   if (attr === undefined) return null
+
+  const toggle = () => {
+    const next = isOn ? 'off' : 'on'
+    execute({ deviceId, command: next, optimisticAttribute: 'switch', optimisticValue: next })
+  }
+
   return (
-    <Link
-      to="/group/system"
-      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+    <button
+      onClick={toggle}
+      aria-pressed={isOn}
+      aria-label={`${label}: ${isOn ? 'on' : 'off'}`}
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
         isOn
           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
           : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
       }`}
     >
       {label}
-    </Link>
+    </button>
   )
 }
 

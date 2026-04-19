@@ -10,7 +10,6 @@ import com.timshubet.hubitatdashboard.data.model.HubMode
 import com.timshubet.hubitatdashboard.data.model.HubVariable
 import com.timshubet.hubitatdashboard.data.repository.ConnectionResolver
 import com.timshubet.hubitatdashboard.data.repository.DeviceRepository
-import com.timshubet.hubitatdashboard.data.repository.PinRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,7 +23,6 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
-    private val pinRepository: PinRepository,
     private val connectionResolver: ConnectionResolver
 ) : ViewModel() {
 
@@ -60,24 +58,16 @@ class DeviceViewModel @Inject constructor(
         }
     }
 
-    fun setHsmMode(mode: String, pin: String) {
+    fun setHsmMode(mode: String) {
         viewModelScope.launch {
-            if (!pinRepository.verifyPin(pin)) {
-                _snackbarMessage.tryEmit("Invalid PIN")
-                return@launch
-            }
             deviceRepository.setHsmMode(mode).onFailure {
                 _snackbarMessage.tryEmit("HSM change failed: ${it.message}")
             }
         }
     }
 
-    fun setMode(modeId: String, pin: String) {
+    fun setMode(modeId: String) {
         viewModelScope.launch {
-            if (!pinRepository.verifyPin(pin)) {
-                _snackbarMessage.tryEmit("Invalid PIN")
-                return@launch
-            }
             deviceRepository.setMode(modeId).onFailure {
                 _snackbarMessage.tryEmit("Mode change failed: ${it.message}")
             }

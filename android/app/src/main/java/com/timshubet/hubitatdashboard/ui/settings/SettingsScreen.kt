@@ -148,28 +148,6 @@ fun SettingsScreen(
                 }
             }
 
-            // PIN
-            OutlinedTextField(
-                value = uiState.pin,
-                onValueChange = { if (it.length <= 4) viewModel.onPinChange(it) },
-                label = { Text("PIN (4 digits)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                visualTransformation = PasswordVisualTransformation(),
-                isError = uiState.pinError != null,
-                supportingText = uiState.pinError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Confirm PIN
-            OutlinedTextField(
-                value = uiState.confirmPin,
-                onValueChange = { if (it.length <= 4) viewModel.onConfirmPinChange(it) },
-                label = { Text("Confirm PIN") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

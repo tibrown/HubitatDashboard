@@ -14,8 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -55,10 +57,22 @@ fun MainScreen(
     val isEditMode by groupEditViewModel.isEditMode.collectAsState()
     val resolvedGroups by groupEditViewModel.resolvedGroups.collectAsState()
     val customGroups by groupEditViewModel.customGroups.collectAsState()
+    val defaultGroupId by groupEditViewModel.defaultGroupId.collectAsState()
 
     val showEditToggle = currentRoute.startsWith("group/")
 
-    val startDestination = if (isConfigured) NavRoutes.DEFAULT_GROUP else NavRoutes.SETTINGS
+    val startDestination = if (isConfigured) NavRoutes.group(defaultGroupId) else NavRoutes.SETTINGS
+
+    // Navigate to the default group whenever edit mode is turned off
+    var wasEditing by remember { mutableStateOf(false) }
+    LaunchedEffect(isEditMode) {
+        if (wasEditing && !isEditMode) {
+            navController.navigate(NavRoutes.group(defaultGroupId)) {
+                launchSingleTop = true
+            }
+        }
+        wasEditing = isEditMode
+    }
 
     val currentGroupLabel = resolvedGroups.find { it.id == currentGroupId }?.displayName
         ?: allDrawerGroups.find { it.id == currentGroupId }?.label
@@ -125,7 +139,7 @@ fun MainScreen(
                             SettingsScreen(
                                 onSaveSuccess = {
                                     viewModel.refresh()
-                                    navController.navigate(NavRoutes.DEFAULT_GROUP) {
+                                    navController.navigate(NavRoutes.group(defaultGroupId)) {
                                         popUpTo(NavRoutes.SETTINGS) { inclusive = true }
                                     }
                                 }

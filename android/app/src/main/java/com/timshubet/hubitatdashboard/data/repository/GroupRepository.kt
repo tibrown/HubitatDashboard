@@ -158,6 +158,36 @@ class GroupRepository @Inject constructor(
         }
     }
 
+    fun moveChildGroupUp(parentId: String, childId: String) {
+        val current = _childGroupOrder.value.toMutableMap()
+        val existing = current[parentId]
+            ?: _customGroups.value.filter { it.parentId == parentId }.map { it.id }
+        val order = existing.toMutableList()
+        val idx = order.indexOf(childId)
+        if (idx > 0) {
+            order[idx] = order[idx - 1]
+            order[idx - 1] = childId
+            current[parentId] = order
+            _childGroupOrder.value = current
+            saveAll()
+        }
+    }
+
+    fun moveChildGroupDown(parentId: String, childId: String) {
+        val current = _childGroupOrder.value.toMutableMap()
+        val existing = current[parentId]
+            ?: _customGroups.value.filter { it.parentId == parentId }.map { it.id }
+        val order = existing.toMutableList()
+        val idx = order.indexOf(childId)
+        if (idx in 0 until order.lastIndex) {
+            order[idx] = order[idx + 1]
+            order[idx + 1] = childId
+            current[parentId] = order
+            _childGroupOrder.value = current
+            saveAll()
+        }
+    }
+
     fun setTileOrder(groupId: String, orderedIds: List<String>) {
         val current = _tileOrder.value.toMutableMap()
         current[groupId] = orderedIds

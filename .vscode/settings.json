@@ -1,0 +1,8 @@
+{
+  "java.jdt.ls.java.home": "C:\\Users\\gikjl\\.jdk17\\jdk-17.0.11+9",
+  "java.home": "C:\\Users\\gikjl\\.jdk17\\jdk-17.0.11+9",
+  "terminal.integrated.env.windows": {
+    "JAVA_HOME": "C:\\Users\\gikjl\\.jdk17\\jdk-17.0.11+9",
+    "ANDROID_HOME": "C:\\Users\\gikjl\\Android\\Sdk"
+  }
+}

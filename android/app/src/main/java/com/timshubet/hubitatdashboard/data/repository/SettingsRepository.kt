@@ -17,6 +17,7 @@ class SettingsRepository @Inject constructor(
         const val KEY_PIN_HASH = "pin_hash"
         const val KEY_GROUP_ORDER = "group_order"
         const val KEY_THEME_OVERRIDE = "theme_override"
+        const val KEY_DEFAULT_GROUP_ID = "default_group_id"
     }
 
     val localHubIp: String get() = prefs.getString(KEY_LOCAL_HUB_IP, "") ?: ""
@@ -27,6 +28,7 @@ class SettingsRepository @Inject constructor(
     val pinHash: String get() = prefs.getString(KEY_PIN_HASH, "") ?: ""
     val groupOrder: String get() = prefs.getString(KEY_GROUP_ORDER, "") ?: ""
     val themeOverride: String get() = prefs.getString(KEY_THEME_OVERRIDE, "system") ?: "system"
+    val defaultGroupId: String get() = prefs.getString(KEY_DEFAULT_GROUP_ID, "environment") ?: "environment"
 
     fun setLocalHubIp(value: String) = prefs.edit().putString(KEY_LOCAL_HUB_IP, value).apply()
     fun setMakerAppId(value: String) = prefs.edit().putString(KEY_MAKER_APP_ID, value).apply()
@@ -36,6 +38,7 @@ class SettingsRepository @Inject constructor(
     fun setPinHash(hash: String) = prefs.edit().putString(KEY_PIN_HASH, hash).apply()
     fun setGroupOrder(json: String) = prefs.edit().putString(KEY_GROUP_ORDER, json).apply()
     fun setThemeOverride(value: String) = prefs.edit().putString(KEY_THEME_OVERRIDE, value).apply()
+    fun setDefaultGroupId(id: String) = prefs.edit().putString(KEY_DEFAULT_GROUP_ID, id).apply()
 
     fun getDarkMode(): String = themeOverride
     fun setDarkMode(value: String) = setThemeOverride(value)

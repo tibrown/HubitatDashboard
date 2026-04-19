@@ -7,10 +7,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,13 +20,10 @@ import com.timshubet.hubitatdashboard.ui.tiles.common.TileShell
 fun ModeTile(
     tile: TileConfig,
     modes: List<HubMode>,
-    onSetMode: (modeId: String, pin: String) -> Unit,
+    onSetMode: (modeId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val activeMode = modes.firstOrNull { it.active }
-    var pendingModeId by remember { mutableStateOf<String?>(null) }
-    var showPin by remember { mutableStateOf(false) }
-    var isInvalidPin by remember { mutableStateOf(false) }
 
     TileShell(
         title = tile.label,
@@ -56,26 +49,8 @@ fun ModeTile(
             ModeChipRow(
                 options = modes.map { it.name },
                 selectedLabel = activeMode?.name,
-                onSelect = { idx ->
-                    pendingModeId = modes[idx].id
-                    showPin = true
-                    isInvalidPin = false
-                }
+                onSelect = { idx -> onSetMode(modes[idx].id) }
             )
         }
-    }
-
-    if (showPin) {
-        PinDialog(
-            title = "Confirm PIN",
-            isInvalidPin = isInvalidPin,
-            onConfirm = { pin ->
-                pendingModeId?.let { id ->
-                    onSetMode(id, pin)
-                    showPin = false
-                }
-            },
-            onDismiss = { showPin = false }
-        )
     }
 }

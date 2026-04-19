@@ -123,8 +123,8 @@ fun TileCard(
     hubVariables: List<HubVariable> = emptyList(),
     hsmStatus: HsmMode = HsmMode.UNKNOWN,
     modes: List<HubMode> = emptyList(),
-    onSetHsmMode: (mode: String, pin: String) -> Unit = { _, _ -> },
-    onSetMode: (modeId: String, pin: String) -> Unit = { _, _ -> },
+    onSetHsmMode: (mode: String) -> Unit = { _ -> },
+    onSetMode: (modeId: String) -> Unit = { _ -> },
     onSetVariable: (name: String, value: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {

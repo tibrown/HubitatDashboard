@@ -7,10 +7,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -40,12 +36,9 @@ private val hsmOptions = listOf(
 fun HsmTile(
     tile: TileConfig,
     hsmStatus: HsmMode,
-    onSetHsmMode: (mode: String, pin: String) -> Unit,
+    onSetHsmMode: (mode: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var pendingMode by remember { mutableStateOf<String?>(null) }
-    var showPin by remember { mutableStateOf(false) }
-    var isInvalidPin by remember { mutableStateOf(false) }
     val color = hsmColor(hsmStatus)
 
     TileShell(
@@ -69,26 +62,8 @@ fun HsmTile(
         ModeChipRow(
             options = hsmOptions.map { it.displayName },
             selectedLabel = hsmStatus.displayName,
-            onSelect = { idx ->
-                pendingMode = hsmOptions[idx].apiValue
-                showPin = true
-                isInvalidPin = false
-            },
+            onSelect = { idx -> onSetHsmMode(hsmOptions[idx].apiValue) },
             selectedColor = color
-        )
-    }
-
-    if (showPin) {
-        PinDialog(
-            title = "Confirm PIN",
-            isInvalidPin = isInvalidPin,
-            onConfirm = { pin ->
-                pendingMode?.let { mode ->
-                    onSetHsmMode(mode, pin)
-                    showPin = false
-                }
-            },
-            onDismiss = { showPin = false }
         )
     }
 }

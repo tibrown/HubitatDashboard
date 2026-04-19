@@ -6,6 +6,7 @@ import com.timshubet.hubitatdashboard.data.model.GroupConfig
 import com.timshubet.hubitatdashboard.data.model.TileType
 import com.timshubet.hubitatdashboard.data.repository.DeviceRepository
 import com.timshubet.hubitatdashboard.data.repository.GroupRepository
+import com.timshubet.hubitatdashboard.data.repository.SettingsRepository
 import com.timshubet.hubitatdashboard.ui.edit.autoTileType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +18,15 @@ import javax.inject.Inject
 @HiltViewModel
 class GroupEditViewModel @Inject constructor(
     private val groupRepository: GroupRepository,
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: DeviceRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+
+    private val _defaultGroupId = MutableStateFlow(settingsRepository.defaultGroupId)
+    val defaultGroupId: StateFlow<String> = _defaultGroupId.asStateFlow()
 
     val resolvedGroups: StateFlow<List<GroupConfig>> = groupRepository.resolvedGroupsFlow
     val customGroups: StateFlow<List<CustomGroupData>> = groupRepository.customGroups
@@ -50,6 +55,13 @@ class GroupEditViewModel @Inject constructor(
 
     fun moveGroupUp(id: String) = groupRepository.moveGroupUp(id)
     fun moveGroupDown(id: String) = groupRepository.moveGroupDown(id)
+    fun moveChildGroupUp(parentId: String, childId: String) = groupRepository.moveChildGroupUp(parentId, childId)
+    fun moveChildGroupDown(parentId: String, childId: String) = groupRepository.moveChildGroupDown(parentId, childId)
+
+    fun setDefaultGroup(id: String) {
+        settingsRepository.setDefaultGroupId(id)
+        _defaultGroupId.value = id
+    }
 
     fun setTileOrder(groupId: String, orderedIds: List<String>) =
         groupRepository.setTileOrder(groupId, orderedIds)

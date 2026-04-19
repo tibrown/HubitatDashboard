@@ -72,10 +72,9 @@ fun GroupScreen(
     val isEditMode by groupEditViewModel.isEditMode.collectAsState()
     val group = resolvedGroups.find { it.id == groupId }
 
-    // Find subgroups of the current group
-    val childGroups = customGroups
-        .filter { it.parentId == groupId }
-        .mapNotNull { child -> resolvedGroups.find { it.id == child.id } }
+    // Find subgroups — derived from resolvedGroups so childGroupOrder is respected
+    val childGroupIds = customGroups.filter { it.parentId == groupId }.map { it.id }.toSet()
+    val childGroups = resolvedGroups.filter { it.id in childGroupIds }
 
     if (group == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -232,8 +231,8 @@ fun GroupScreen(
                                     hubVariables = hubVariables,
                                     hsmStatus = hsmStatus,
                                     modes = modes,
-                                    onSetHsmMode = { mode, pin -> viewModel.setHsmMode(mode, pin) },
-                                    onSetMode = { modeId, pin -> viewModel.setMode(modeId, pin) },
+                                    onSetHsmMode = { mode -> viewModel.setHsmMode(mode) },
+                                    onSetMode = { modeId -> viewModel.setMode(modeId) },
                                     onSetVariable = { name, value -> viewModel.setHubVariable(name, value) }
                                 )
                                 if (isEditMode) {
