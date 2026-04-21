@@ -22,14 +22,21 @@ async function bootstrap() {
     }
 
     if (varRes.status === 'fulfilled' && varRes.value.ok) {
-      const vars = await varRes.value.json()
-      // Hub variables come as [{name, value, type}] — convert to Record
-      if (Array.isArray(vars)) {
+      const raw = await varRes.value.json()
+      // Hub variables may come as [{name,value,type}] or {variables:[...]}
+      const vars: unknown[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as Record<string, unknown>)?.variables)
+          ? (raw as Record<string, unknown[]>).variables
+          : []
+      if (vars.length > 0) {
         const record: Record<string, string | number> = {}
-        for (const v of vars) {
-          record[v.name] = v.value
+        for (const v of vars as Record<string, unknown>[]) {
+          if (v.name && v.value !== undefined && v.value !== null)
+            record[v.name as string] = v.value as string | number
         }
-        useDeviceStore.getState().setHubVariables(record)
+        if (Object.keys(record).length > 0)
+          useDeviceStore.getState().setHubVariables(record)
       }
     }
   } catch {

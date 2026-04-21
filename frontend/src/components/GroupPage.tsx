@@ -53,8 +53,17 @@ const PINNED_TYPES = new Set(['hsm', 'mode'])
 
 /** Maps synthetic IDs (used in groupAdditions) → their TileConfig */
 const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
-  '__mode__': { tileType: 'mode' as TileType, label: 'Hub Mode' },
-  '__hsm__':  { tileType: 'hsm'  as TileType, label: 'Hub Security Manager' },
+  '__mode__':    { tileType: 'mode'         as TileType, label: 'Hub Mode' },
+  '__hsm__':     { tileType: 'hsm'          as TileType, label: 'Hub Security Manager' },
+  '__sunrise__': { tileType: 'hub-variable' as TileType, label: 'Sunrise', hubVarName: 'Sunrise' },
+  '__sunset__':  { tileType: 'hub-variable' as TileType, label: 'Sunset',  hubVarName: 'Sunset'  },
+}
+
+/** Reverse-lookup: given a special tile config, return its synthetic ID (e.g. '__sunrise__'). */
+function getSyntheticId(tile: TileConfig): string | undefined {
+  return Object.entries(SPECIAL_TILE_MAP).find(
+    ([, cfg]) => cfg.tileType === tile.tileType && cfg.hubVarName === tile.hubVarName
+  )?.[0]
 }
 
 /** Applies a stored tile order to a tile array, appending any newly added tiles at the end. */
@@ -108,8 +117,15 @@ function sortColumnMajor(tiles: TileConfig[], numCols: number): (TileConfig | nu
   return result
 }
 
+/** Generate a stable unique key for a tile. Hub-variable tiles share a tileType so we include the variable name. */
+function tileKey(tile: TileConfig, fallback: string): string {
+  if (tile.deviceId) return tile.deviceId
+  if (tile.tileType === 'hub-variable') return `hub-variable-${tile.hubVarName ?? ''}`
+  return tile.tileType ?? fallback
+}
+
 function renderTile(tile: TileConfig) {
-  const id = tile.deviceId ?? tile.tileType
+  const id = tileKey(tile, tile.tileType ?? 'tile')
   const base = { deviceId: tile.deviceId ?? '', label: tile.label }
   switch (tile.tileType) {
     case 'switch':         return <SwitchTile key={id} {...base} />
@@ -160,15 +176,37 @@ function EditOverlay({
 }) {
   const [showGroupMenu, setShowGroupMenu] = useState(false)
   const [showTypeMenu, setShowTypeMenu]   = useState(false)
-  const allNames             = useAllGroupNames()
-  const addDeviceToGroup     = useGroupStore((s) => s.addDeviceToGroup)
-  const removeFn             = useGroupStore((s) => s.removeDeviceFromGroup)
-  const setTileTypeOverride  = useGroupStore((s) => s.setTileTypeOverride)
-  const tileTypeOverrides    = useGroupStore((s) => s.tileTypeOverrides)
-  const devices              = useDeviceStore((s) => s.devices)
+  const allNames                 = useAllGroupNames()
+  const addDeviceToGroup         = useGroupStore((s) => s.addDeviceToGroup)
+  const removeFn                 = useGroupStore((s) => s.removeDeviceFromGroup)
+  const removeFromGroupAdditions = useGroupStore((s) => s.removeFromGroupAdditions)
+  const groupAdditions           = useGroupStore((s) => s.groupAdditions)
+  const setTileTypeOverride      = useGroupStore((s) => s.setTileTypeOverride)
+  const tileTypeOverrides        = useGroupStore((s) => s.tileTypeOverrides)
+  const devices                  = useDeviceStore((s) => s.devices)
 
   const deviceId = tile.deviceId
-  if (!deviceId) return null // special tiles (hsm, mode) can't be moved
+  if (!deviceId) {
+    // Special tile (no real device) — show remove button if it was added via groupAdditions
+    const syntheticId = getSyntheticId(tile)
+    const isInAdditions = !!syntheticId && (groupAdditions[groupId] ?? []).includes(syntheticId)
+    if (!syntheticId || !isInAdditions || isOther) return null
+    return (
+      <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1 overflow-hidden">
+        <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0">
+          {tile.label}
+        </p>
+        <div className="flex gap-1 flex-wrap justify-center items-center flex-1">
+          <button
+            onClick={() => { removeFromGroupAdditions(groupId, syntheticId); showToast('Removed from group') }}
+            className="flex items-center gap-0.5 px-1.5 py-1 text-[11px] bg-red-600 hover:bg-red-500 text-white rounded-md font-medium"
+          >
+            <X size={10} /> Remove
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const device        = devices[deviceId]
   const availTypes    = device ? availableTileTypes(device) : []
@@ -541,7 +579,7 @@ function StaticGroupPage({ groupId }: Props) {
       {pinnedTiles.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3">
           {pinnedTiles.map((tile, i) => (
-            <TileWrapper key={tile.deviceId ?? tile.tileType ?? `pinned-${i}`} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
+            <TileWrapper key={tileKey(tile, `pinned-${i}`)} tile={tile} groupId={groupId} isOther={false} editMode={editMode} index={i} />
           ))}
         </div>
       )}
@@ -550,7 +588,7 @@ function StaticGroupPage({ groupId }: Props) {
           {tilesForGrid.map((tile, i) =>
             tile ? (
               <TileWrapper
-                key={tile.deviceId ?? tile.tileType ?? `tile-${i}`}
+                key={tileKey(tile, `tile-${i}`)}
                 tile={tile}
                 groupId={groupId}
                 isOther={false}

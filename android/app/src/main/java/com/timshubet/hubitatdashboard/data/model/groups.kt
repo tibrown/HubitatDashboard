@@ -13,6 +13,8 @@ val groups: List<GroupConfig> = listOf(
             TileConfig(deviceId = "1284", label = "Concrete ZR", tileType = TileType.SWITCH),
             TileConfig(deviceId = "223", label = "Lanai Temp", tileType = TileType.TEMPERATURE),
             TileConfig(deviceId = "1225", label = "Greenhouse Motion", tileType = TileType.TEMPERATURE),
+            TileConfig(label = "Sunrise", tileType = TileType.HUB_VARIABLE, hubVarName = "Sunrise"),
+            TileConfig(label = "Sunset", tileType = TileType.HUB_VARIABLE, hubVarName = "Sunset"),
         )
     ),
     GroupConfig(

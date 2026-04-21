@@ -92,6 +92,22 @@ fun DevicePickerSheet(
                             }
                         }
                     }
+                    if ("__sunrise__" !in currentDeviceIds) {
+                        item {
+                            SpecialTileRow("Sunrise", TileType.HUB_VARIABLE) {
+                                onAdd("__sunrise__", "Sunrise", TileType.HUB_VARIABLE)
+                                onDismiss()
+                            }
+                        }
+                    }
+                    if ("__sunset__" !in currentDeviceIds) {
+                        item {
+                            SpecialTileRow("Sunset", TileType.HUB_VARIABLE) {
+                                onAdd("__sunset__", "Sunset", TileType.HUB_VARIABLE)
+                                onDismiss()
+                            }
+                        }
+                    }
                     item { Spacer(Modifier.height(8.dp)) }
                     item {
                         Text(

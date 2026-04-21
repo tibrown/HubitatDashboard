@@ -278,8 +278,10 @@ class GroupRepository @Inject constructor(
         tileTypeOverrides: Map<String, TileType>
     ): TileConfig? {
         return when (deviceId) {
-            "__hsm__" -> TileConfig(deviceId = null, label = "Security System", tileType = TileType.HSM)
-            "__mode__" -> TileConfig(deviceId = null, label = "Hub Mode", tileType = TileType.MODE)
+            "__hsm__"      -> TileConfig(deviceId = null, label = "Security System", tileType = TileType.HSM)
+            "__mode__"     -> TileConfig(deviceId = null, label = "Hub Mode",         tileType = TileType.MODE)
+            "__sunrise__"  -> TileConfig(deviceId = null, label = "Sunrise",          tileType = TileType.HUB_VARIABLE, hubVarName = "Sunrise")
+            "__sunset__"   -> TileConfig(deviceId = null, label = "Sunset",           tileType = TileType.HUB_VARIABLE, hubVarName = "Sunset")
             else -> {
                 val device = devices[deviceId]
                 val tileType = tileTypeOverrides[deviceId]

@@ -3,13 +3,41 @@ import { useDeviceStore } from '../store/deviceStore'
 import { showToast } from '../utils/toast'
 import type { SSEEvent } from '../types'
 
+const HUB_VAR_POLL_MS = 24 * 60 * 60 * 1000 // once-a-day fallback; push from hub is primary
+
+async function fetchHubVariables(): Promise<Record<string, string | number> | null> {
+  try {
+    const res = await fetch('/api/hubvariables')
+    if (!res.ok) return null
+    const raw = await res.json()
+    // Hubitat may return [{name,value,type}] or {variables:[...]}
+    const vars: unknown[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray((raw as Record<string, unknown>)?.variables)
+        ? (raw as Record<string, unknown[]>).variables
+        : []
+    if (vars.length === 0) return null
+    const record: Record<string, string | number> = {}
+    for (const v of vars) {
+      const item = v as Record<string, unknown>
+      if (item.name && item.value !== undefined && item.value !== null)
+        record[item.name as string] = item.value as string | number
+    }
+    return Object.keys(record).length > 0 ? record : null
+  } catch {
+    return null
+  }
+}
+
 export function useSSE(): void {
   const applyEvent = useDeviceStore((s) => s.applyEvent)
   const setAllDevices = useDeviceStore((s) => s.setAllDevices)
+  const setHubVariables = useDeviceStore((s) => s.setHubVariables)
   const setConnectionStatus = useDeviceStore((s) => s.setConnectionStatus)
 
   const esRef = useRef<EventSource | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const hubVarPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const wasConnected = useRef(false)
 
   function stopPolling() {
@@ -17,6 +45,16 @@ export function useSSE(): void {
       clearInterval(pollRef.current)
       pollRef.current = null
     }
+  }
+
+  function startHubVarPolling() {
+    if (hubVarPollRef.current) return // already running
+    // Fetch immediately, then repeat every 5 minutes
+    fetchHubVariables().then((vars) => { if (vars) setHubVariables(vars) })
+    hubVarPollRef.current = setInterval(async () => {
+      const vars = await fetchHubVariables()
+      if (vars) setHubVariables(vars)
+    }, HUB_VAR_POLL_MS)
   }
 
   function startPolling() {
@@ -46,9 +84,9 @@ export function useSSE(): void {
 
     es.onopen = () => {
       stopPolling()
-      if (wasConnected.current) {
-        showToast('Connected', 'info')
-      }
+      // Always refresh hub variables on (re)connect — they have no SSE event stream
+      fetchHubVariables().then((vars) => { if (vars) setHubVariables(vars) })
+      if (wasConnected.current) showToast('Connected', 'info')
       wasConnected.current = true
       setConnectionStatus('connected')
     }
@@ -71,6 +109,7 @@ export function useSSE(): void {
 
   useEffect(() => {
     connect()
+    startHubVarPolling()
 
     function handleVisibility() {
       if (document.visibilityState === 'visible') {
@@ -82,6 +121,7 @@ export function useSSE(): void {
     return () => {
       esRef.current?.close()
       stopPolling()
+      if (hubVarPollRef.current) clearInterval(hubVarPollRef.current)
       document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [])

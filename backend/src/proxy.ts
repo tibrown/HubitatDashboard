@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
 const { compare } = bcrypt;
 import { config } from './config.js';
-import { getDevice, setAllDevices, getAllDevices } from './cache.js';
+import { getDevice, setAllDevices, getAllDevices, getCachedHubVars } from './cache.js';
 import type { DeviceState } from './types.js';
 
 function makerUrl(path: string): string {
@@ -99,8 +99,22 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/hubvariables
   fastify.get('/api/hubvariables', async (_req, reply) => {
     const res = await fetch(makerUrl('/hubvariables'));
-    if (!res.ok) return reply.status(res.status).send({ error: 'Maker API error' });
-    return reply.send(await res.json());
+    if (!res.ok) {
+      // Maker API failed — return whatever we have cached from webhook pushes
+      const cached = getCachedHubVars();
+      const asArray = Object.entries(cached).map(([name, value]) => ({ name, value, type: 'string' }));
+      return reply.send(asArray);
+    }
+    const raw = await res.json() as unknown[];
+    // Merge in any hub vars received via webhook that aren't in the Maker API response
+    const cached = getCachedHubVars();
+    const makerNames = new Set(
+      Array.isArray(raw) ? (raw as Record<string, unknown>[]).map((v) => v.name as string) : []
+    );
+    const extra = Object.entries(cached)
+      .filter(([name]) => !makerNames.has(name))
+      .map(([name, value]) => ({ name, value, type: 'string' }));
+    return reply.send(Array.isArray(raw) ? [...raw, ...extra] : extra);
   });
 
   // PUT /api/hubvariables/:name

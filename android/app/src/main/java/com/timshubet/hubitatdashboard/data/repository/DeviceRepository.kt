@@ -63,6 +63,7 @@ class DeviceRepository @Inject constructor(
         scope.launch { refreshWithRetry() }
         scope.launch { collectSseEvents() }
         scope.launch { collectSseConnected() }
+        scope.launch { pollHubVariables() }
     }
 
     private suspend fun refreshWithRetry() {
@@ -71,6 +72,23 @@ class DeviceRepository @Inject constructor(
             if (tryRefresh()) return
             kotlinx.coroutines.delay(backoffMs)
             backoffMs = minOf(backoffMs * 2, 30_000L)
+        }
+    }
+
+    /** Refresh hub variables once a day — push via Maker API webhook is not possible on Android,
+     *  so startup fetch (in tryRefresh) is the primary path; this is a once-a-day safety net. */
+    private suspend fun pollHubVariables() {
+        val pollIntervalMs = 24 * 60 * 60 * 1_000L
+        while (true) {
+            kotlinx.coroutines.delay(pollIntervalMs)
+            if (_connectionStatus.value == ConnectionStatus.CONNECTED) {
+                try {
+                    val (svc, token, _) = resolvedService()
+                    _hubVariables.value = svc.getHubVariables(token)
+                } catch (_: Exception) {
+                    // Network error — skip this poll cycle
+                }
+            }
         }
     }
 

@@ -43,6 +43,14 @@ export const useDeviceStore = create<DeviceStore>()(
           if (event.deviceId === 'mode') {
             return { currentMode: String(event.value) }
           }
+          if (event.deviceId === 'hubvar') {
+            return {
+              hubVariables: {
+                ...state.hubVariables,
+                [event.attribute]: event.value as string | number,
+              },
+            }
+          }
           const existing = state.devices[event.deviceId]
           if (!existing) return {}
           return {

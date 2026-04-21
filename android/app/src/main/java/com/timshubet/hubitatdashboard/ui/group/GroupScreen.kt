@@ -109,8 +109,10 @@ fun GroupScreen(
     if (showDevicePicker) {
         val currentDeviceIds = group.tiles.mapNotNull { tile ->
             when {
-                tile.tileType == TileType.HSM -> "__hsm__"
+                tile.tileType == TileType.HSM  -> "__hsm__"
                 tile.tileType == TileType.MODE -> "__mode__"
+                tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunrise" -> "__sunrise__"
+                tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunset"  -> "__sunset__"
                 !tile.deviceId.isNullOrBlank() -> tile.deviceId
                 else -> null
             }
@@ -238,8 +240,10 @@ fun GroupScreen(
                                 if (isEditMode) {
                                     val removableId = when {
                                         !tile.deviceId.isNullOrBlank() -> tile.deviceId
-                                        tile.tileType == TileType.HSM -> "__hsm__"
+                                        tile.tileType == TileType.HSM  -> "__hsm__"
                                         tile.tileType == TileType.MODE -> "__mode__"
+                                        tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunrise" -> "__sunrise__"
+                                        tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunset"  -> "__sunset__"
                                         else -> null
                                     }
                                     if (removableId != null) {

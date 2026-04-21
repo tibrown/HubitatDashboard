@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { updateDeviceAttribute } from './cache.js';
+import { updateDeviceAttribute, setCachedHubVar } from './cache.js';
 import { addClient, removeClient, broadcast } from './sse.js';
 import type { SSEEvent } from './types.js';
 
@@ -43,6 +43,33 @@ export async function webhookRoutes(fastify: FastifyInstance): Promise<void> {
         const event: SSEEvent = {
           deviceId: 'mode',
           attribute: 'mode',
+          value: value ?? null,
+          timestamp: Date.now(),
+        };
+        broadcast(event);
+        return reply.send({ ok: true });
+      }
+
+      // Handle hub variable push events (sent by Hubitat apps via pushHubVarToDashboard)
+      if (deviceId === 'hubvar' && name && value !== undefined) {
+        // Cache so page refreshes get the latest value without needing Maker API exposure
+        if (value !== null) setCachedHubVar(name, value as string | number);
+        const event: SSEEvent = {
+          deviceId: 'hubvar',
+          attribute: name,
+          value: value ?? null,
+          timestamp: Date.now(),
+        };
+        broadcast(event);
+        return reply.send({ ok: true });
+      }
+
+      // Handle Maker API location events — hub variable changes arrive with source=LOCATION and no deviceId
+      if (source === 'LOCATION' && !deviceId && name && value !== undefined) {
+        if (value !== null) setCachedHubVar(name, value as string | number);
+        const event: SSEEvent = {
+          deviceId: 'hubvar',
+          attribute: name,
           value: value ?? null,
           timestamp: Date.now(),
         };

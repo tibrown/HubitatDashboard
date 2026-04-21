@@ -1,6 +1,7 @@
 import type { DeviceState } from './types.js';
 
 const cache = new Map<string, DeviceState>();
+const hubVarCache = new Map<string, string | number>();
 
 export function getDevice(id: string): DeviceState | undefined {
   return cache.get(id);
@@ -31,4 +32,12 @@ export function setAllDevices(devices: DeviceState[]): void {
   for (const d of devices) {
     cache.set(d.id, d);
   }
+}
+
+export function setCachedHubVar(name: string, value: string | number): void {
+  hubVarCache.set(name, value);
+}
+
+export function getCachedHubVars(): Record<string, string | number> {
+  return Object.fromEntries(hubVarCache.entries());
 }

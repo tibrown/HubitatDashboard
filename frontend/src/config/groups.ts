@@ -13,6 +13,8 @@ export const groups: GroupConfig[] = [
       { deviceId: '1284', label: 'Concrete ZR', tileType: 'switch' },
       { deviceId: '223', label: 'Lanai Temp', tileType: 'temperature' },
       { deviceId: '1225', label: 'Greenhouse Motion', tileType: 'temperature' },
+      { label: 'Sunrise', tileType: 'hub-variable', hubVarName: 'Sunrise' },
+      { label: 'Sunset', tileType: 'hub-variable', hubVarName: 'Sunset' },
     ],
   },
   {

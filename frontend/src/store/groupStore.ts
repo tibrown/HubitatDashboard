@@ -44,6 +44,8 @@ interface GroupStore {
   addDeviceToGroup: (groupId: string, deviceId: string) => void
   /** Returns false if deviceId would have no remaining group; removal is blocked. */
   removeDeviceFromGroup: (groupId: string, deviceId: string) => boolean
+  /** Removes a synthetic tile ID (e.g. __sunrise__) from groupAdditions; no membership check. */
+  removeFromGroupAdditions: (groupId: string, id: string) => void
   moveGroupUp: (id: string) => void
   moveGroupDown: (id: string) => void
   moveSubGroupUp: (parentId: string, id: string) => void
@@ -171,6 +173,14 @@ export const useGroupStore = create<GroupStore>()(
         }
         return true
       },
+
+      removeFromGroupAdditions: (groupId, id) =>
+        set((s) => ({
+          groupAdditions: {
+            ...s.groupAdditions,
+            [groupId]: (s.groupAdditions[groupId] ?? []).filter((sid) => sid !== id),
+          },
+        })),
 
       moveGroupUp: (id) =>
         set((s) => {

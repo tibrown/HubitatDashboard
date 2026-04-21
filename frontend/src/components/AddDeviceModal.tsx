@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, X, Clock, ShieldCheck } from 'lucide-react'
+import { Search, X, Clock, ShieldCheck, Sun } from 'lucide-react'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import { autoTileType } from '../utils/autoTileType'
@@ -13,8 +13,10 @@ interface Props {
 
 /** Synthetic IDs for non-device special tiles */
 export const SPECIAL_TILES = [
-  { id: '__mode__', label: 'Hub Mode',            Icon: Clock,        tileType: 'mode' },
-  { id: '__hsm__',  label: 'Hub Security Manager', Icon: ShieldCheck,  tileType: 'hsm'  },
+  { id: '__mode__',    label: 'Hub Mode',            Icon: Clock,       tileType: 'mode'         },
+  { id: '__hsm__',     label: 'Hub Security Manager', Icon: ShieldCheck, tileType: 'hsm'          },
+  { id: '__sunrise__', label: 'Sunrise',              Icon: Sun,         tileType: 'hub-variable' },
+  { id: '__sunset__',  label: 'Sunset',               Icon: Sun,         tileType: 'hub-variable' },
 ] as const
 
 export function AddDeviceModal({ groupId, currentDeviceIds, onClose }: Props) {
