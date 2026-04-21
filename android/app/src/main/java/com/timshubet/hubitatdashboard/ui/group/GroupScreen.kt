@@ -45,6 +45,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.timshubet.hubitatdashboard.data.model.TileConfig
 import com.timshubet.hubitatdashboard.data.model.TileType
 import com.timshubet.hubitatdashboard.data.model.DeviceState
 import com.timshubet.hubitatdashboard.ui.edit.DevicePickerSheet
@@ -57,6 +58,12 @@ import com.timshubet.hubitatdashboard.viewmodel.GroupEditViewModel
 import kotlinx.coroutines.launch
 
 private fun normalizeLabel(s: String) = s.lowercase().replace(Regex("[^a-z0-9]"), "")
+
+private fun tileKey(tile: TileConfig): String = when {
+    tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName != null -> "hub-variable-${tile.hubVarName}"
+    tile.deviceId != null -> tile.deviceId
+    else -> tile.tileType.name
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +100,7 @@ fun GroupScreen(
 
     // Derive stable key list from group tiles
     val tileKeys by remember(group.tiles) {
-        derivedStateOf { group.tiles.map { it.deviceId ?: it.tileType.name } }
+        derivedStateOf { group.tiles.map { tileKey(it) } }
     }
 
     // Drag-and-drop state — recreated when the tile list identity changes
@@ -166,7 +173,7 @@ fun GroupScreen(
                     )
                     // Use drag-state-ordered keys so reorder is reflected immediately
                     val orderedTiles = remember(dragState.keys, group.tiles) {
-                        val tileMap = group.tiles.associateBy { it.deviceId ?: it.tileType.name }
+                        val tileMap = group.tiles.associateBy { tileKey(it) }
                         dragState.keys.mapNotNull { tileMap[it] }
                     }
                     LazyVerticalGrid(
@@ -177,7 +184,7 @@ fun GroupScreen(
                     ) {
                         items(
                             items = orderedTiles,
-                            key = { tile -> tile.deviceId ?: tile.tileType.name },
+                            key = { tile -> tileKey(tile) },
                             span = { tile ->
                                 if (tile.tileType == TileType.MODE || tile.tileType == TileType.HSM) {
                                     GridItemSpan(maxLineSpan)
@@ -187,7 +194,7 @@ fun GroupScreen(
                             }
                         ) { tile ->
                             val tileIndex = orderedTiles.indexOf(tile)
-                            val tileKey = tile.deviceId ?: tile.tileType.name
+                            val tileKeyStr = tileKey(tile)
                             val isDragging = isEditMode && dragState.draggingIndex == tileIndex
                             val device = if (!tile.deviceId.isNullOrBlank()) {
                                 devices[tile.deviceId]
@@ -214,7 +221,7 @@ fun GroupScreen(
                                         }
                                     }
                                     .then(
-                                        if (isEditMode) Modifier.pointerInput(tileKey) {
+                                        if (isEditMode) Modifier.pointerInput(tileKeyStr) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { dragState.onDragStart(tileIndex) },
                                                 onDrag = { _, delta -> dragState.onDrag(delta) },
