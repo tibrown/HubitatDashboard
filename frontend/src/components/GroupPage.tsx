@@ -192,8 +192,8 @@ function EditOverlay({
     const isInAdditions = !!syntheticId && (groupAdditions[groupId] ?? []).includes(syntheticId)
     if (!syntheticId || !isInAdditions || isOther) return null
     return (
-      <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1 overflow-hidden">
-        <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0">
+      <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1">
+        <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0 overflow-hidden">
           {tile.label}
         </p>
         <div className="flex gap-1 flex-wrap justify-center items-center flex-1">
@@ -236,9 +236,9 @@ function EditOverlay({
   const available = allNames.filter((g) => g.id !== groupId && g.id !== 'other')
 
   return (
-    <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1 overflow-hidden">
+    <div className="absolute inset-0 rounded-xl bg-black/70 z-10 flex flex-col p-1.5 gap-1">
       {/* Device name — always pinned at top */}
-      <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0">
+      <p className="text-white font-semibold text-[11px] text-center leading-tight truncate flex-shrink-0 overflow-hidden">
         {tile.label}
       </p>
       {/* Action buttons — centered in remaining space */}
@@ -285,7 +285,7 @@ function EditOverlay({
             </button>
             {showTypeMenu && (
               <div
-                className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[130px]"
+                className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[130px] max-h-64 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 {availTypes.map((type) => (
