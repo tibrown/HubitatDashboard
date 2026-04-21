@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, X, Plus, ChevronDown, UserPlus, FolderPlus, ArrowLeft, ChevronRight, Sliders, GripVertical } from 'lucide-react'
+import { Pencil, X, Plus, ChevronDown, ChevronUp, UserPlus, FolderPlus, ArrowLeft, ChevronRight, Sliders, GripVertical } from 'lucide-react'
 import { groups as staticGroups } from '../config/groups'
 import { useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
@@ -629,6 +629,8 @@ function CustomGroupPage({ groupId }: Props) {
   const tileTypeOverrides = useGroupStore((s) => s.tileTypeOverrides)
   const addCustomGroup    = useGroupStore((s) => s.addCustomGroup)
   const removeCustomGroup = useGroupStore((s) => s.removeCustomGroup)
+  const moveSubGroupUp    = useGroupStore((s) => s.moveSubGroupUp)
+  const moveSubGroupDown  = useGroupStore((s) => s.moveSubGroupDown)
   const tileOrder         = useGroupStore((s) => s.tileOrder)
   const setTileOrder      = useGroupStore((s) => s.setTileOrder)
 
@@ -645,12 +647,11 @@ function CustomGroupPage({ groupId }: Props) {
     ? customGroups.find((g) => g.id === customGroup.parentId)
     : undefined
 
-  // Sub-groups of this group — always shown alphabetically
+  // Sub-groups of this group — ordered by childGroupOrder (user-defined), fallback alphabetical
   const childIds = childGroupOrder[groupId] ?? []
   const childGroups = childIds
     .map((id) => customGroups.find((g) => g.id === id))
     .filter((g): g is NonNullable<typeof g> => !!g)
-    .sort((a, b) => a.displayName.localeCompare(b.displayName))
 
   const addedIds = groupAdditions[groupId] ?? []
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
@@ -806,13 +807,29 @@ function CustomGroupPage({ groupId }: Props) {
                     <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
                   </button>
                   {editMode && (
-                    <button
-                      onClick={() => handleDeleteSubGroup(child.id, child.displayName)}
-                      className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
-                      aria-label={`Delete ${child.displayName}`}
-                    >
-                      <X size={14} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => moveSubGroupUp(groupId, child.id)}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        aria-label="Move up"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        onClick={() => moveSubGroupDown(groupId, child.id)}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        aria-label="Move down"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSubGroup(child.id, child.displayName)}
+                        className="p-1.5 text-red-400 hover:text-red-600 transition-colors"
+                        aria-label={`Delete ${child.displayName}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
               )
