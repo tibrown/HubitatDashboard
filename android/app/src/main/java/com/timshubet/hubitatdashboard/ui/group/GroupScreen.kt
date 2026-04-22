@@ -120,6 +120,8 @@ fun GroupScreen(
                 tile.tileType == TileType.MODE -> "__mode__"
                 tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunrise" -> "__sunrise__"
                 tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunset"  -> "__sunset__"
+                tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "CivilDusk" -> "__civildusk__"
+                tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "AstronomicalDusk" -> "__astronomicaldusk__"
                 !tile.deviceId.isNullOrBlank() -> tile.deviceId
                 else -> null
             }
@@ -251,6 +253,8 @@ fun GroupScreen(
                                         tile.tileType == TileType.MODE -> "__mode__"
                                         tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunrise" -> "__sunrise__"
                                         tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "Sunset"  -> "__sunset__"
+                                        tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "CivilDusk" -> "__civildusk__"
+                                        tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName == "AstronomicalDusk" -> "__astronomicaldusk__"
                                         else -> null
                                     }
                                     if (removableId != null) {

@@ -25,6 +25,8 @@ import com.timshubet.hubitatdashboard.ui.theme.TileTokens
 import com.timshubet.hubitatdashboard.ui.tiles.common.TilePill
 import com.timshubet.hubitatdashboard.ui.tiles.common.TileShell
 
+private val readOnlySunVars = setOf("Sunrise", "Sunset", "CivilDusk", "AstronomicalDusk")
+
 @Composable
 fun HubVariableTile(
     tile: TileConfig,
@@ -33,6 +35,7 @@ fun HubVariableTile(
     modifier: Modifier = Modifier
 ) {
     val varName = tile.hubVarName ?: tile.label
+    val isReadOnly = varName in readOnlySunVars
     val currentValue = hubVariables.firstOrNull { it.name == varName }?.value ?: "—"
     var showEdit by remember { mutableStateOf(false) }
     var editValue by remember(currentValue) { mutableStateOf(currentValue) }
@@ -51,13 +54,15 @@ fun HubVariableTile(
                 modifier = Modifier
             )
         }
-        TilePill(
-            label = "Edit",
-            isOn = true,
-            icon = Icons.Filled.Edit,
-            onColor = TileTokens.BlueCold,
-            onClick = { showEdit = true }
-        )
+        if (!isReadOnly) {
+            TilePill(
+                label = "Edit",
+                isOn = true,
+                icon = Icons.Filled.Edit,
+                onColor = TileTokens.BlueCold,
+                onClick = { showEdit = true }
+            )
+        }
     }
 
     if (showEdit) {

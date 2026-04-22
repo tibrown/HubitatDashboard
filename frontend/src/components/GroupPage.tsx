@@ -57,6 +57,8 @@ const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
   '__hsm__':     { tileType: 'hsm'          as TileType, label: 'Hub Security Manager' },
   '__sunrise__': { tileType: 'hub-variable' as TileType, label: 'Sunrise', hubVarName: 'Sunrise' },
   '__sunset__':  { tileType: 'hub-variable' as TileType, label: 'Sunset',  hubVarName: 'Sunset'  },
+  '__civildusk__': { tileType: 'hub-variable' as TileType, label: 'Civil Dusk', hubVarName: 'CivilDusk' },
+  '__astronomicaldusk__': { tileType: 'hub-variable' as TileType, label: 'Full Dark', hubVarName: 'AstronomicalDusk' },
 }
 
 /** Reverse-lookup: given a special tile config, return its synthetic ID (e.g. '__sunrise__'). */
@@ -66,16 +68,23 @@ function getSyntheticId(tile: TileConfig): string | undefined {
   )?.[0]
 }
 
+/** Stable tile ID used for drag/order persistence. */
+function tileOrderId(tile: TileConfig): string {
+  if (tile.deviceId) return tile.deviceId
+  if (tile.tileType === 'hub-variable') return `hub-variable-${tile.hubVarName ?? ''}`
+  return tile.tileType
+}
+
 /** Applies a stored tile order to a tile array, appending any newly added tiles at the end. */
 function applyTileOrder(tiles: TileConfig[], orderedIds: string[]): TileConfig[] {
-  const tileById = new Map(tiles.map((t) => [t.deviceId ?? t.tileType, t]))
+  const tileById = new Map(tiles.map((t) => [tileOrderId(t), t]))
   const result: TileConfig[] = []
   for (const id of orderedIds) {
     const t = tileById.get(id)
     if (t) result.push(t)
   }
   for (const t of tiles) {
-    if (!orderedIds.includes(t.deviceId ?? t.tileType)) result.push(t)
+    if (!orderedIds.includes(tileOrderId(t))) result.push(t)
   }
   return result
 }
@@ -542,8 +551,8 @@ function StaticGroupPage({ groupId }: Props) {
     : sortColumnMajor(restTiles, numCols)
 
   const makeDragHandlers = (tile: TileConfig): DragHandlers => {
-    const id = tile.deviceId ?? tile.tileType
-    const orderIndex = orderedRestTiles.findIndex((t) => (t.deviceId ?? t.tileType) === id)
+    const id = tileOrderId(tile)
+    const orderIndex = orderedRestTiles.findIndex((t) => tileOrderId(t) === id)
     return {
       onDragStart: () => setDragIndex(orderIndex),
       onDragOver: (e) => { e.preventDefault(); setDragOverIndex(orderIndex) },
@@ -553,7 +562,7 @@ function StaticGroupPage({ groupId }: Props) {
         const next = [...orderedRestTiles]
         const [moved] = next.splice(dragIndex, 1)
         next.splice(orderIndex, 0, moved)
-        setTileOrder(groupId, next.map((t) => t.deviceId ?? t.tileType))
+        setTileOrder(groupId, next.map((t) => tileOrderId(t)))
         setDragIndex(null)
         setDragOverIndex(null)
       },
@@ -671,8 +680,8 @@ function CustomGroupPage({ groupId }: Props) {
     : sortColumnMajor(tiles, numCols)
 
   const makeDragHandlers = (tile: TileConfig): DragHandlers => {
-    const id = tile.deviceId ?? tile.tileType
-    const orderIndex = orderedTiles.findIndex((t) => (t.deviceId ?? t.tileType) === id)
+    const id = tileOrderId(tile)
+    const orderIndex = orderedTiles.findIndex((t) => tileOrderId(t) === id)
     return {
       onDragStart: () => setDragIndex(orderIndex),
       onDragOver: (e) => { e.preventDefault(); setDragOverIndex(orderIndex) },
@@ -682,7 +691,7 @@ function CustomGroupPage({ groupId }: Props) {
         const next = [...orderedTiles]
         const [moved] = next.splice(dragIndex, 1)
         next.splice(orderIndex, 0, moved)
-        setTileOrder(groupId, next.map((t) => t.deviceId ?? t.tileType))
+        setTileOrder(groupId, next.map((t) => tileOrderId(t)))
         setDragIndex(null)
         setDragOverIndex(null)
       },

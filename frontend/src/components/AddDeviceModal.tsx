@@ -17,6 +17,8 @@ export const SPECIAL_TILES = [
   { id: '__hsm__',     label: 'Hub Security Manager', Icon: ShieldCheck, tileType: 'hsm'          },
   { id: '__sunrise__', label: 'Sunrise',              Icon: Sun,         tileType: 'hub-variable' },
   { id: '__sunset__',  label: 'Sunset',               Icon: Sun,         tileType: 'hub-variable' },
+  { id: '__civildusk__', label: 'Civil Dusk',         Icon: Sun,         tileType: 'hub-variable' },
+  { id: '__astronomicaldusk__', label: 'Full Dark',   Icon: Sun,         tileType: 'hub-variable' },
 ] as const
 
 export function AddDeviceModal({ groupId, currentDeviceIds, onClose }: Props) {

@@ -15,6 +15,8 @@ val groups: List<GroupConfig> = listOf(
             TileConfig(deviceId = "1225", label = "Greenhouse Motion", tileType = TileType.TEMPERATURE),
             TileConfig(label = "Sunrise", tileType = TileType.HUB_VARIABLE, hubVarName = "Sunrise"),
             TileConfig(label = "Sunset", tileType = TileType.HUB_VARIABLE, hubVarName = "Sunset"),
+            TileConfig(label = "Civil Dusk", tileType = TileType.HUB_VARIABLE, hubVarName = "CivilDusk"),
+            TileConfig(label = "Full Dark", tileType = TileType.HUB_VARIABLE, hubVarName = "AstronomicalDusk"),
         )
     ),
     GroupConfig(

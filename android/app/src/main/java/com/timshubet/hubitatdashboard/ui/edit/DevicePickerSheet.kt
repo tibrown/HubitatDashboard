@@ -108,6 +108,22 @@ fun DevicePickerSheet(
                             }
                         }
                     }
+                    if ("__civildusk__" !in currentDeviceIds) {
+                        item {
+                            SpecialTileRow("Civil Dusk", TileType.HUB_VARIABLE) {
+                                onAdd("__civildusk__", "Civil Dusk", TileType.HUB_VARIABLE)
+                                onDismiss()
+                            }
+                        }
+                    }
+                    if ("__astronomicaldusk__" !in currentDeviceIds) {
+                        item {
+                            SpecialTileRow("Full Dark", TileType.HUB_VARIABLE) {
+                                onAdd("__astronomicaldusk__", "Full Dark", TileType.HUB_VARIABLE)
+                                onDismiss()
+                            }
+                        }
+                    }
                     item { Spacer(Modifier.height(8.dp)) }
                     item {
                         Text(

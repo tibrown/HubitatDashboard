@@ -15,6 +15,8 @@ export const groups: GroupConfig[] = [
       { deviceId: '1225', label: 'Greenhouse Motion', tileType: 'temperature' },
       { label: 'Sunrise', tileType: 'hub-variable', hubVarName: 'Sunrise' },
       { label: 'Sunset', tileType: 'hub-variable', hubVarName: 'Sunset' },
+      { label: 'Civil Dusk', tileType: 'hub-variable', hubVarName: 'CivilDusk' },
+      { label: 'Full Dark', tileType: 'hub-variable', hubVarName: 'AstronomicalDusk' },
     ],
   },
   {

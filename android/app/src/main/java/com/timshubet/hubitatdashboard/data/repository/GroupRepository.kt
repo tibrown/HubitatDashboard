@@ -282,6 +282,8 @@ class GroupRepository @Inject constructor(
             "__mode__"     -> TileConfig(deviceId = null, label = "Hub Mode",         tileType = TileType.MODE)
             "__sunrise__"  -> TileConfig(deviceId = null, label = "Sunrise",          tileType = TileType.HUB_VARIABLE, hubVarName = "Sunrise")
             "__sunset__"   -> TileConfig(deviceId = null, label = "Sunset",           tileType = TileType.HUB_VARIABLE, hubVarName = "Sunset")
+            "__civildusk__" -> TileConfig(deviceId = null, label = "Civil Dusk",      tileType = TileType.HUB_VARIABLE, hubVarName = "CivilDusk")
+            "__astronomicaldusk__" -> TileConfig(deviceId = null, label = "Full Dark", tileType = TileType.HUB_VARIABLE, hubVarName = "AstronomicalDusk")
             else -> {
                 val device = devices[deviceId]
                 val tileType = tileTypeOverrides[deviceId]
@@ -292,11 +294,18 @@ class GroupRepository @Inject constructor(
         }
     }
 
+    private fun tileOrderKey(tile: TileConfig): String = when {
+        tile.tileType == TileType.HUB_VARIABLE && !tile.hubVarName.isNullOrBlank() ->
+            "hub-variable-${tile.hubVarName}"
+        !tile.deviceId.isNullOrBlank() -> tile.deviceId
+        else -> tile.tileType.name
+    }
+
     private fun applyTileOrder(tiles: List<TileConfig>, order: List<String>?): List<TileConfig> {
         if (order.isNullOrEmpty()) return tiles
-        val tileMap = tiles.associateBy { it.deviceId ?: it.tileType.name }
+        val tileMap = tiles.associateBy { tileOrderKey(it) }
         val ordered = order.mapNotNull { tileMap[it] }
-        val remaining = tiles.filter { (it.deviceId ?: it.tileType.name) !in order }
+        val remaining = tiles.filter { tileOrderKey(it) !in order }
         return ordered + remaining
     }
 
