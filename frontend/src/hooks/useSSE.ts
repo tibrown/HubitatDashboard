@@ -86,7 +86,15 @@ export function useSSE(): void {
       stopPolling()
       // Always refresh hub variables on (re)connect — they have no SSE event stream
       fetchHubVariables().then((vars) => { if (vars) setHubVariables(vars) })
-      if (wasConnected.current) showToast('Connected', 'info')
+      if (wasConnected.current) {
+        // Reconnect after a drop — force-refresh all device state so hub mesh
+        // devices that went offline during a hub reboot show their current state
+        showToast('Connected', 'info')
+        fetch('/api/devices')
+          .then((r) => r.ok ? r.json() : null)
+          .then((devices) => { if (devices) setAllDevices(devices) })
+          .catch(() => { /* ignore — SSE updates will catch up */ })
+      }
       wasConnected.current = true
       setConnectionStatus('connected')
     }
