@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, ShieldOff, Moon, Clock, Wifi, WifiOff, RefreshCw, Settings, Menu } from 'lucide-react'
 import { useHsmStatus, useCurrentMode, useConnectionStatus, useDeviceStore } from '../store/deviceStore'
 import { useCommand } from '../hooks/useCommand'
+import { SettingsModal } from './SettingsModal'
 
 function HsmBadge() {
   const status = useHsmStatus()
@@ -87,33 +89,43 @@ function ConnectorBadge({ deviceId, label }: { deviceId: string; label: string }
 
 export function SystemBar() {
   const setSidebarOpen = useDeviceStore((s) => s.setSidebarOpen)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
-    <header className="h-12 flex items-center gap-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
-      <button
-        className="sm:hidden p-1 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mr-2"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Open menu"
-      >
-        <Menu size={18} />
-      </button>
-      <HsmBadge />
-      <ModeBadge />
-      <ConnectionBadge />
-      <div className="flex items-center gap-1.5 overflow-x-auto">
-        <ConnectorBadge deviceId="486" label="Alarms" />
-        <ConnectorBadge deviceId="905" label="Silent" />
-        <ConnectorBadge deviceId="1227" label="High Alert" />
-        <ConnectorBadge deviceId="1268" label="Traveling" />
-        <ConnectorBadge deviceId="1327" label="PTO" />
-        <ConnectorBadge deviceId="1316" label="Holiday" />
-      </div>
-      <div className="ml-auto">
-        <Link to="/group/system" className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-          <Settings size={14} />
-          System
-        </Link>
-      </div>
-    </header>
+    <>
+      <header className="h-12 flex items-center gap-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <button
+          className="sm:hidden p-1 rounded text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mr-2"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          <Menu size={18} />
+        </button>
+        <HsmBadge />
+        <ModeBadge />
+        <ConnectionBadge />
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <ConnectorBadge deviceId="486" label="Alarms" />
+          <ConnectorBadge deviceId="905" label="Silent" />
+          <ConnectorBadge deviceId="1227" label="High Alert" />
+          <ConnectorBadge deviceId="1268" label="Traveling" />
+          <ConnectorBadge deviceId="1327" label="PTO" />
+          <ConnectorBadge deviceId="1316" label="Holiday" />
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Link to="/group/system" className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+            System
+          </Link>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open settings"
+            className="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            <Settings size={14} />
+          </button>
+        </div>
+      </header>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+    </>
   )
 }

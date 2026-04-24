@@ -4,6 +4,7 @@ import { SystemBar } from './components/SystemBar'
 import { GroupPage } from './components/GroupPage'
 import { ToastContainer } from './components/ToastContainer'
 import { useSSE } from './hooks/useSSE'
+import { useIdleRefresh } from './hooks/useIdleRefresh'
 
 function GroupPageWrapper() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -12,6 +13,7 @@ function GroupPageWrapper() {
 
 function App() {
   useSSE()
+  useIdleRefresh()
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
