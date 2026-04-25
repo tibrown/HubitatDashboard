@@ -33,6 +33,7 @@ export function useSSE(): void {
   const applyEvent = useDeviceStore((s) => s.applyEvent)
   const setAllDevices = useDeviceStore((s) => s.setAllDevices)
   const setHubVariables = useDeviceStore((s) => s.setHubVariables)
+  const setCurrentMode = useDeviceStore((s) => s.setCurrentMode)
   const setConnectionStatus = useDeviceStore((s) => s.setConnectionStatus)
 
   const esRef = useRef<EventSource | null>(null)
@@ -84,8 +85,16 @@ export function useSSE(): void {
 
     es.onopen = () => {
       stopPolling()
-      // Always refresh hub variables on (re)connect — they have no SSE event stream
+      // Always refresh hub variables and current mode on (re)connect
       fetchHubVariables().then((vars) => { if (vars) setHubVariables(vars) })
+      fetch('/api/modes')
+        .then((r) => r.ok ? r.json() : null)
+        .then((modes: Array<{ id: string; name: string; active: boolean }> | null) => {
+          if (!modes) return
+          const active = modes.find((m) => m.active)
+          if (active) setCurrentMode(active.name)
+        })
+        .catch(() => { /* ignore — webhook events will catch up */ })
       if (wasConnected.current) {
         // Reconnect after a drop — force-refresh all device state so hub mesh
         // devices that went offline during a hub reboot show their current state

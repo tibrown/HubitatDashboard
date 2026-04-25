@@ -84,12 +84,9 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // PUT /api/modes/:id
-  fastify.put<{ Params: { id: string }; Body: { pin?: string } }>(
+  fastify.put<{ Params: { id: string } }>(
     '/api/modes/:id',
     async (req, reply) => {
-      if (!await verifyPin((req.body as Record<string, unknown>)?.pin)) {
-        return reply.status(403).send({ error: 'Invalid PIN' });
-      }
       const res = await fetch(makerUrl(`/modes/${req.params.id}`));
       if (!res.ok) return reply.status(res.status).send({ error: 'Maker API error' });
       return reply.send({ ok: true });

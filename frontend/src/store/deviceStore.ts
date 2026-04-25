@@ -13,6 +13,7 @@ interface DeviceStore {
 
   setAllDevices: (devices: DeviceState[]) => void
   applyEvent: (event: SSEEvent) => void
+  setCurrentMode: (mode: string) => void
   setHubVariables: (vars: Record<string, string | number>) => void
   setPending: (deviceId: string, pending: boolean) => void
   setConnectionStatus: (status: 'connected' | 'reconnecting' | 'polling') => void
@@ -24,7 +25,7 @@ export const useDeviceStore = create<DeviceStore>()(
     (set) => ({
       devices: {},
       hsmStatus: 'unknown',
-      currentMode: 'Day',
+      currentMode: '',
       hubVariables: {},
       pendingCommands: new Set(),
       connectionStatus: 'reconnecting',
@@ -69,7 +70,9 @@ export const useDeviceStore = create<DeviceStore>()(
 
       setHubVariables: (vars) => set(() => ({ hubVariables: vars })),
 
-      setPending: (deviceId, pending) =>
+      setCurrentMode: (mode) => set(() => ({ currentMode: mode })),
+
+      setPending:(deviceId, pending) =>
         set((state) => {
           const next = new Set(state.pendingCommands)
           if (pending) {

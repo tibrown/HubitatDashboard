@@ -11,9 +11,10 @@ initDarkMode()
 // Fetch initial device state before render
 async function bootstrap() {
   try {
-    const [devRes, varRes] = await Promise.allSettled([
+    const [devRes, varRes, modeRes] = await Promise.allSettled([
       fetch('/api/devices'),
       fetch('/api/hubvariables'),
+      fetch('/api/modes'),
     ])
 
     if (devRes.status === 'fulfilled' && devRes.value.ok) {
@@ -38,6 +39,12 @@ async function bootstrap() {
         if (Object.keys(record).length > 0)
           useDeviceStore.getState().setHubVariables(record)
       }
+    }
+
+    if (modeRes.status === 'fulfilled' && modeRes.value.ok) {
+      const modes = await modeRes.value.json() as Array<{ id: string; name: string; active: boolean }>
+      const active = modes.find((m) => m.active)
+      if (active) useDeviceStore.getState().setCurrentMode(active.name)
     }
   } catch {
     // Hub unreachable on load — SSE hook will handle reconnect

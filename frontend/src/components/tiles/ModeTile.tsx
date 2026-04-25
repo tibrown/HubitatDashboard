@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Clock, Loader2 } from 'lucide-react'
 import { useCurrentMode, useDeviceStore } from '../../store/deviceStore'
-import { PinModal } from '../PinModal'
 import { showToast } from '../../utils/toast'
 import { useCollapsed } from '../../hooks/useCollapsed'
 import { CollapsibleCard } from './CollapsibleCard'
@@ -12,9 +11,6 @@ export function ModeTile() {
   const currentMode = useCurrentMode()
   const applyEvent = useDeviceStore((s) => s.applyEvent)
   const [modes, setModes] = useState<HubMode[]>([])
-  const [pinOpen, setPinOpen] = useState(false)
-  const [pendingModeId, setPendingModeId] = useState<string | null>(null)
-  const [pendingModeName, setPendingModeName] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [collapsed, toggleCollapsed] = useCollapsed('mode-tile')
 
@@ -25,32 +21,19 @@ export function ModeTile() {
       .catch(() => {})
   }, [])
 
-  const handleModeSelect = (mode: HubMode) => {
-    setPendingModeId(mode.id)
-    setPendingModeName(mode.name)
-    setPinOpen(true)
-  }
-
-  const handlePinConfirm = async (pin: string) => {
-    setPinOpen(false)
-    if (!pendingModeId || !pendingModeName) return
+  const handleModeSelect = async (mode: HubMode) => {
     setLoading(true)
-    applyEvent({ deviceId: 'mode', attribute: 'mode', value: pendingModeName, timestamp: Date.now() })
+    applyEvent({ deviceId: 'mode', attribute: 'mode', value: mode.name, timestamp: Date.now() })
     try {
-      const res = await fetch(`/api/modes/${pendingModeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin }),
-      })
+      const res = await fetch(`/api/modes/${mode.id}`, { method: 'PUT' })
       if (!res.ok) {
         applyEvent({ deviceId: 'mode', attribute: 'mode', value: currentMode, timestamp: Date.now() })
-        throw new Error(res.status === 403 ? 'Invalid PIN' : 'Mode change failed')
+        throw new Error('Mode change failed')
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Mode error', 'error')
     } finally {
       setLoading(false)
-      setPendingModeId(null)
     }
   }
 
@@ -84,9 +67,6 @@ export function ModeTile() {
           ))}
         </div>
       </CollapsibleCard>
-      <PinModal isOpen={pinOpen} title={`Set Mode: ${pendingModeName}`}
-        onConfirm={handlePinConfirm}
-        onCancel={() => { setPinOpen(false); setPendingModeId(null) }} />
     </>
   )
 }
