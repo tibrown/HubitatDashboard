@@ -774,7 +774,7 @@ function CustomGroupPage({ groupId }: Props) {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
             Sub-groups
           </p>
-          <div className="flex flex-col gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {childGroups.map((child) => {
               const Icon = ICON_MAP[child.iconName] ?? ICON_MAP['Home']
               const childTileIds = groupAdditions[child.id] ?? []
