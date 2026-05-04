@@ -5,13 +5,13 @@ import { showToast } from '../../utils/toast'
 
 interface Props { hubVarName: string; label: string }
 
-const READ_ONLY_SUN_VARS = new Set(['Sunrise', 'Sunset', 'CivilDusk', 'AstronomicalDusk'])
+const READ_ONLY_VARS = new Set(['Sunrise', 'Sunset', 'CivilDusk', 'AstronomicalDusk', 'WeatherReport'])
 
 export function HubVariableTile({ hubVarName, label }: Props) {
   const value = useHubVariable(hubVarName)
   const setHubVariables = useDeviceStore((s) => s.setHubVariables)
   const hubVariables = useDeviceStore((s) => s.hubVariables)
-  const isReadOnly = READ_ONLY_SUN_VARS.has(hubVarName)
+  const isReadOnly = READ_ONLY_VARS.has(hubVarName)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
 
@@ -65,7 +65,7 @@ export function HubVariableTile({ hubVarName, label }: Props) {
           <button onClick={cancelEdit} className="p-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-600" aria-label="Cancel"><X size={12} /></button>
         </div>
       ) : (
-        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-line">
           {value !== undefined ? String(value) : '—'}
         </p>
       )}

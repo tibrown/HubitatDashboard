@@ -24,6 +24,7 @@ export interface TileConfig {
   label: string;
   tileType: TileType;
   hubVarName?: string;
+  wide?: boolean;
 }
 
 export interface GroupConfig {

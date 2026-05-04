@@ -3,7 +3,7 @@ import { useDeviceStore } from '../store/deviceStore'
 import { showToast } from '../utils/toast'
 import type { SSEEvent } from '../types'
 
-const HUB_VAR_POLL_MS = 24 * 60 * 60 * 1000 // once-a-day fallback; push from hub is primary
+const HUB_VAR_POLL_MS = 5 * 60 * 1000 // 5-minute fallback poll; push from hub is primary
 
 async function fetchHubVariables(): Promise<Record<string, string | number> | null> {
   try {

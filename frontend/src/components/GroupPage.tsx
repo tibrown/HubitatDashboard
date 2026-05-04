@@ -59,6 +59,7 @@ const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
   '__sunset__':  { tileType: 'hub-variable' as TileType, label: 'Sunset',  hubVarName: 'Sunset'  },
   '__civildusk__': { tileType: 'hub-variable' as TileType, label: 'Civil Dusk', hubVarName: 'CivilDusk' },
   '__astronomicaldusk__': { tileType: 'hub-variable' as TileType, label: 'Full Dark', hubVarName: 'AstronomicalDusk' },
+  '__weatherreport__':    { tileType: 'hub-variable' as TileType, label: 'Weather Report', hubVarName: 'WeatherReport', wide: true },
 }
 
 /** Reverse-lookup: given a special tile config, return its synthetic ID (e.g. '__sunrise__'). */
@@ -412,7 +413,7 @@ function TileWrapper({
 
   return (
     <div
-      className={`relative${PINNED_TYPES.has(tile.tileType) ? ' col-span-2' : ''}${dragHandlers?.isDragOver ? ' ring-2 ring-blue-400 rounded-xl' : ''}${dragHandlers?.isDragging ? ' opacity-40' : ''}`}
+      className={`relative${(PINNED_TYPES.has(tile.tileType) || tile.wide) ? ' col-span-2' : ''}${dragHandlers?.isDragOver ? ' ring-2 ring-blue-400 rounded-xl' : ''}${dragHandlers?.isDragging ? ' opacity-40' : ''}`}
       draggable={isDraggable || undefined}
       onDragStart={isDraggable ? dragHandlers!.onDragStart : undefined}
       onDragOver={isDraggable ? dragHandlers!.onDragOver : undefined}

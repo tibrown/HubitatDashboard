@@ -17,6 +17,7 @@ export const groups: GroupConfig[] = [
       { label: 'Sunset', tileType: 'hub-variable', hubVarName: 'Sunset' },
       { label: 'Civil Dusk', tileType: 'hub-variable', hubVarName: 'CivilDusk' },
       { label: 'Full Dark', tileType: 'hub-variable', hubVarName: 'AstronomicalDusk' },
+      { label: 'Weather Report', tileType: 'hub-variable', hubVarName: 'WeatherReport', wide: true },
     ],
   },
   {
