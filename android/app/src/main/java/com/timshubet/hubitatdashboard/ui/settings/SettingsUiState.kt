@@ -1,5 +1,7 @@
 package com.timshubet.hubitatdashboard.ui.settings
 
+import com.timshubet.hubitatdashboard.data.export.GroupExportData
+
 data class SettingsUiState(
     val localHubIp: String = "",
     val makerAppId: String = "",
@@ -9,5 +11,7 @@ data class SettingsUiState(
     val localHubIpError: String? = null,
     val isLoading: Boolean = false,
     val saveSuccess: Boolean = false,
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+    /** Non-null when a hub pull has been parsed and is awaiting user confirmation. */
+    val pendingHubImportData: GroupExportData? = null
 )

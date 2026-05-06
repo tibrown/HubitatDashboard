@@ -193,6 +193,21 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f)
                 ) { Text("Import Config") }
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { viewModel.pushConfigToHub() },
+                    modifier = Modifier.weight(1f),
+                    enabled = !uiState.isLoading
+                ) { Text("Push to Hub") }
+                Button(
+                    onClick = { viewModel.pullConfigFromHub() },
+                    modifier = Modifier.weight(1f),
+                    enabled = !uiState.isLoading
+                ) { Text("Pull from Hub") }
+            }
         }
     }
 
@@ -210,6 +225,21 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showImportConfirmDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Confirmation dialog before overwriting config on hub pull
+    if (uiState.pendingHubImportData != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelHubPull() },
+            title = { Text("Replace Config?") },
+            text = { Text("This will replace all group and tile configuration with the data pulled from the hub. Continue?") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmHubPull() }) { Text("Pull") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelHubPull() }) { Text("Cancel") }
             }
         )
     }

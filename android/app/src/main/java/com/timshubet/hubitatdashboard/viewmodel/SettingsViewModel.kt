@@ -2,6 +2,7 @@ package com.timshubet.hubitatdashboard.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.timshubet.hubitatdashboard.data.api.HubitatApiService
 import com.timshubet.hubitatdashboard.data.export.GroupExportManager
 import com.timshubet.hubitatdashboard.data.model.ConnectionMode
 import com.timshubet.hubitatdashboard.data.repository.ConnectionResolver
@@ -13,13 +14,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.Retrofit
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val connectionResolver: ConnectionResolver,
-    private val groupExportManager: GroupExportManager
+    private val groupExportManager: GroupExportManager,
+    private val retrofit: Retrofit
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -119,5 +122,56 @@ class SettingsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun buildDynamicService(baseUrl: String): HubitatApiService =
+        retrofit.newBuilder().baseUrl("$baseUrl/").build().create(HubitatApiService::class.java)
+
+    fun pushConfigToHub() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            runCatching {
+                val baseUrl = connectionResolver.resolveBaseUrl()
+                val service = buildDynamicService(baseUrl)
+                val json = groupExportManager.buildExportJson()
+                service.setHubVariable(
+                    name = "BackupConfig",
+                    token = settingsRepository.makerToken,
+                    body = mapOf("value" to json)
+                )
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, snackbarMessage = "Config pushed to hub") }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, snackbarMessage = "Push failed: ${e.message}") }
+            }
+        }
+    }
+
+    fun pullConfigFromHub() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            runCatching {
+                val baseUrl = connectionResolver.resolveBaseUrl()
+                val service = buildDynamicService(baseUrl)
+                val vars = service.getHubVariables(settingsRepository.makerToken)
+                val value = vars.find { it.name == "BackupConfig" }?.value
+                    ?: error("BackupConfig variable not found or empty")
+                groupExportManager.parseImportJson(value).getOrThrow()
+            }.onSuccess { data ->
+                _uiState.update { it.copy(isLoading = false, pendingHubImportData = data) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, snackbarMessage = "Pull failed: ${e.message}") }
+            }
+        }
+    }
+
+    fun confirmHubPull() {
+        val data = _uiState.value.pendingHubImportData ?: return
+        groupExportManager.importConfig(data)
+        _uiState.update { it.copy(pendingHubImportData = null, snackbarMessage = "Config pulled from hub") }
+    }
+
+    fun cancelHubPull() {
+        _uiState.update { it.copy(pendingHubImportData = null) }
     }
 }

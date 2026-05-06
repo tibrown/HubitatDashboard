@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Sun, Circle, X, ChevronUp, ChevronDown, Plus, Download, Upload, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Sun, Circle, X, ChevronUp, ChevronDown, Plus, Download, Upload, CloudUpload, CloudDownload, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useConnectionStatus, useSidebarOpen, useSidebarCollapsed, useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import type { GroupExportPayload } from '../store/groupStore'
@@ -28,6 +28,7 @@ export function Sidebar() {
   const [showModal, setShowModal] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [pendingImport, setPendingImport] = useState<GroupExportPayload | null>(null)
+  const [hubSyncing, setHubSyncing] = useState<'push' | 'pull' | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
 
   const groupOrder     = useGroupStore((s) => s.groupOrder)
@@ -77,6 +78,49 @@ export function Sidebar() {
     e.target.value = '' // reset so same file can be re-imported
   }
 
+  const handleHubPush = async () => {
+    setHubSyncing('push')
+    try {
+      const payload: GroupExportPayload = {
+        version: 1,
+        customGroups,
+        groupAdditions,
+        groupExclusions,
+        groupOrder,
+        childGroupOrder,
+        tileTypeOverrides,
+        tileOrder,
+      }
+      const res = await fetch('/api/hubvariables/BackupConfig', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: JSON.stringify(payload) }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (e) {
+      alert(`Push to hub failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setHubSyncing(null)
+    }
+  }
+
+  const handleHubPull = async () => {
+    setHubSyncing('pull')
+    try {
+      const res = await fetch('/api/hubvariables')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const vars = await res.json() as Array<{ name: string; value?: string }>
+      const entry = vars.find((v) => v.name === 'BackupConfig')
+      if (!entry?.value) throw new Error('BackupConfig variable not found or empty')
+      const data = JSON.parse(entry.value) as GroupExportPayload
+      setPendingImport(data)
+      setShowImportConfirm(true)
+    } catch (e) {
+      alert(`Pull from hub failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setHubSyncing(null)
+    }
+  }
   // Build ordered nav items from groupOrder (top-level only — sub-groups excluded)
   const subGroupIds = new Set(customGroups.filter((g) => g.parentId).map((g) => g.id))
   const navItems = groupOrder.filter((id) => !subGroupIds.has(id)).map((id) => {
@@ -258,6 +302,30 @@ export function Sidebar() {
               className="hidden"
               onChange={handleImportFile}
             />
+          </div>
+          <div className={`flex ${sidebarCollapsed ? 'flex-col items-center gap-1' : 'gap-1'} mt-1`}>
+            <button
+              onClick={handleHubPush}
+              disabled={hubSyncing !== null}
+              title="Push config to Hubitat hub variable"
+              className={`flex items-center justify-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors disabled:opacity-40 ${
+                sidebarCollapsed ? 'w-full' : 'flex-1'
+              }`}
+            >
+              <CloudUpload size={12} />
+              {!sidebarCollapsed && (hubSyncing === 'push' ? 'Pushing…' : 'Hub Push')}
+            </button>
+            <button
+              onClick={handleHubPull}
+              disabled={hubSyncing !== null}
+              title="Pull config from Hubitat hub variable"
+              className={`flex items-center justify-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors disabled:opacity-40 ${
+                sidebarCollapsed ? 'w-full' : 'flex-1'
+              }`}
+            >
+              <CloudDownload size={12} />
+              {!sidebarCollapsed && (hubSyncing === 'pull' ? 'Pulling…' : 'Hub Pull')}
+            </button>
           </div>
         </div>
       </aside>
