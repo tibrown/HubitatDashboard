@@ -119,11 +119,11 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
     '/api/hubvariables/:name',
     async (req, reply) => {
       const body = req.body as Record<string, unknown>;
-      const res = await fetch(makerUrl(`/hubvariables/${req.params.name}`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: body.value }),
-      });
+      const encodedValue = encodeURIComponent(String(body.value ?? ''));
+      const res = await fetch(
+        makerUrl(`/hubvariables/${req.params.name}`) + `&value=${encodedValue}`,
+        { method: 'POST' }
+      );
       if (!res.ok) return reply.status(res.status).send({ error: 'Maker API error' });
       return reply.send({ ok: true });
     }
