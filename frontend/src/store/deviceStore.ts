@@ -10,6 +10,7 @@ interface DeviceStore {
   pendingCommands: Set<string>
   connectionStatus: 'connected' | 'reconnecting' | 'polling'
   sidebarOpen: boolean
+  sidebarCollapsed: boolean
 
   setAllDevices: (devices: DeviceState[]) => void
   applyEvent: (event: SSEEvent) => void
@@ -18,6 +19,7 @@ interface DeviceStore {
   setPending: (deviceId: string, pending: boolean) => void
   setConnectionStatus: (status: 'connected' | 'reconnecting' | 'polling') => void
   setSidebarOpen: (open: boolean) => void
+  setSidebarCollapsed: (collapsed: boolean) => void
 }
 
 export const useDeviceStore = create<DeviceStore>()(
@@ -30,6 +32,9 @@ export const useDeviceStore = create<DeviceStore>()(
       pendingCommands: new Set(),
       connectionStatus: 'reconnecting',
       sidebarOpen: false,
+      sidebarCollapsed: (() => {
+        try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch { return false }
+      })(),
 
       setAllDevices: (devices) =>
         set(() => ({
@@ -86,6 +91,11 @@ export const useDeviceStore = create<DeviceStore>()(
       setConnectionStatus: (status) => set(() => ({ connectionStatus: status })),
 
       setSidebarOpen: (open) => set(() => ({ sidebarOpen: open })),
+
+      setSidebarCollapsed: (collapsed) => {
+        try { localStorage.setItem('sidebar-collapsed', String(collapsed)) } catch { /* noop */ }
+        set(() => ({ sidebarCollapsed: collapsed }))
+      },
     }),
     { name: 'hubitat-dashboard' }
   )
@@ -122,3 +132,5 @@ export const useIsPending = (id: string) =>
 export const useConnectionStatus = () => useDeviceStore((s) => s.connectionStatus)
 
 export const useSidebarOpen = () => useDeviceStore((s) => s.sidebarOpen)
+
+export const useSidebarCollapsed = () => useDeviceStore((s) => s.sidebarCollapsed)
