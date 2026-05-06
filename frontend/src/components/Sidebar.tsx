@@ -4,6 +4,7 @@ import { Sun, Circle, X, ChevronUp, ChevronDown, Plus, Download, Upload, CloudUp
 import { useConnectionStatus, useSidebarOpen, useSidebarCollapsed, useDeviceStore } from '../store/deviceStore'
 import { useGroupStore } from '../store/groupStore'
 import type { GroupExportPayload } from '../store/groupStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { groups as staticGroupConfigs } from '../config/groups'
 import { ICON_MAP } from '../utils/iconMap'
 import { CreateGroupModal } from './CreateGroupModal'
@@ -42,6 +43,8 @@ export function Sidebar() {
   const moveGroupDown  = useGroupStore((s) => s.moveGroupDown)
   const addCustomGroup = useGroupStore((s) => s.addCustomGroup)
   const importState    = useGroupStore((s) => s.importState)
+  const hubUsername    = useSettingsStore((s) => s.hubUsername)
+  const hubPassword    = useSettingsStore((s) => s.hubPassword)
 
   const handleExport = () => {
     const payload: GroupExportPayload = {
@@ -91,9 +94,12 @@ export function Sidebar() {
         tileTypeOverrides,
         tileOrder,
       }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (hubUsername) headers['X-Hub-Username'] = hubUsername
+      if (hubPassword) headers['X-Hub-Password'] = hubPassword
       const res = await fetch('/api/hub-file/hubitat-dashboard-backup.json', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       })
       if (!res.ok) {

@@ -151,18 +151,21 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // PUT /api/hub-file/:filename — uploads a file to the hub's file manager
-  // If hubUsername/hubPassword are set in config.json, performs form login first to get a session cookie.
-  // If not set, attempts upload without auth (works when hub security is disabled).
+  // Credentials can be supplied via X-Hub-Username/X-Hub-Password request headers,
+  // or fall back to hubUsername/hubPassword in config.json.
+  // If neither is set, attempts upload without auth (works when hub security is disabled).
   fastify.put<{ Params: { filename: string } }>(
     '/api/hub-file/:filename',
     async (req, reply) => {
       const content = JSON.stringify(req.body);
+      const username = (req.headers['x-hub-username'] as string | undefined) || config.hubUsername || '';
+      const password = (req.headers['x-hub-password'] as string | undefined) || config.hubPassword || '';
       let cookie: string | null = null;
 
-      if (config.hubUsername && config.hubPassword) {
+      if (username && password) {
         const loginBody = new URLSearchParams({
-          username: config.hubUsername,
-          password: config.hubPassword,
+          username,
+          password,
           submit: 'Login',
         });
         const loginRes = await fetch(
@@ -171,7 +174,7 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
         );
         const rawCookie = loginRes.headers.get('set-cookie');
         if (!rawCookie) {
-          return reply.status(401).send({ error: 'Hub login failed — check hubUsername and hubPassword in config.json' });
+          return reply.status(401).send({ error: 'Hub login failed — check hub credentials in App Settings' });
         }
         cookie = rawCookie.split(';')[0];
       }
