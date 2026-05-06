@@ -30,6 +30,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showToken by remember { mutableStateOf(false) }
+    var showHubPassword by remember { mutableStateOf(false) }
     var showImportConfirmDialog by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
@@ -179,6 +180,35 @@ fun SettingsScreen(
                 "or import a file previously exported from the web app.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Hub credentials for file manager (only needed when hub security is enabled)
+            Text("Hub File Manager Credentials", style = MaterialTheme.typography.labelMedium)
+            Text(
+                "Required only if Hub Security is enabled on your Hubitat hub.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = uiState.hubUsername,
+                onValueChange = { viewModel.onHubUsernameChange(it) },
+                label = { Text("Hub Username") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = uiState.hubPassword,
+                onValueChange = { viewModel.onHubPasswordChange(it) },
+                label = { Text("Hub Password") },
+                visualTransformation = if (showHubPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { showHubPassword = !showHubPassword }) {
+                        Icon(
+                            imageVector = if (showHubPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showHubPassword) "Hide password" else "Show password"
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

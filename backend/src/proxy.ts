@@ -138,4 +138,64 @@ export async function proxyRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send({ ok: true });
     }
   );
+
+  // GET /api/hub-file/:filename — reads a file from the hub's local file store (no auth required)
+  fastify.get<{ Params: { filename: string } }>(
+    '/api/hub-file/:filename',
+    async (req, reply) => {
+      const res = await fetch(`http://${config.hubIP}/local/${req.params.filename}`);
+      if (!res.ok) return reply.status(res.status).send({ error: `Hub file not found: HTTP ${res.status}` });
+      const text = await res.text();
+      return reply.type('application/json').send(text);
+    }
+  );
+
+  // PUT /api/hub-file/:filename — uploads a file to the hub's file manager
+  // If hubUsername/hubPassword are set in config.json, performs form login first to get a session cookie.
+  // If not set, attempts upload without auth (works when hub security is disabled).
+  fastify.put<{ Params: { filename: string } }>(
+    '/api/hub-file/:filename',
+    async (req, reply) => {
+      const content = JSON.stringify(req.body);
+      let cookie: string | null = null;
+
+      if (config.hubUsername && config.hubPassword) {
+        const loginBody = new URLSearchParams({
+          username: config.hubUsername,
+          password: config.hubPassword,
+          submit: 'Login',
+        });
+        const loginRes = await fetch(
+          `http://${config.hubIP}/login?loginRedirect=/`,
+          { method: 'POST', body: loginBody, redirect: 'manual' }
+        );
+        const rawCookie = loginRes.headers.get('set-cookie');
+        if (!rawCookie) {
+          return reply.status(401).send({ error: 'Hub login failed — check hubUsername and hubPassword in config.json' });
+        }
+        cookie = rawCookie.split(';')[0];
+      }
+
+      const form = new FormData();
+      form.append(
+        'uploadFile',
+        new Blob([content], { type: 'application/octet-stream' }),
+        req.params.filename
+      );
+
+      const headers: Record<string, string> = {};
+      if (cookie) headers['Cookie'] = cookie;
+
+      const uploadRes = await fetch(`http://${config.hubIP}/hub/fileManager/upload`, {
+        method: 'POST',
+        headers,
+        body: form,
+      });
+
+      if (!uploadRes.ok) {
+        return reply.status(uploadRes.status).send({ error: `Hub file manager error: HTTP ${uploadRes.status}` });
+      }
+      return reply.send({ ok: true });
+    }
+  );
 }

@@ -20,4 +20,6 @@ export interface Config {
   backendPort: number;
   pinHash: string;
   postUrl: string;
+  hubUsername?: string;
+  hubPassword?: string;
 }

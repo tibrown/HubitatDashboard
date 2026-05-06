@@ -91,19 +91,15 @@ export function Sidebar() {
         tileTypeOverrides,
         tileOrder,
       }
-      const json = JSON.stringify(payload)
-      // Gzip + base64 to fit within hub variable's 1024-char limit
-      const compressed = await new Response(
-        new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))
-      ).arrayBuffer()
-      const value = btoa(String.fromCharCode(...new Uint8Array(compressed)))
-      if (value.length > 1024) throw new Error(`Compressed config is ${value.length} chars — exceeds hub variable limit of 1024. Use File Export instead.`)
-      const res = await fetch('/api/hubvariables/BackupConfig', {
+      const res = await fetch('/api/hub-file/hubitat-dashboard-backup.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
+        body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error?: string }
+        throw new Error(err.error ?? `HTTP ${res.status}`)
+      }
     } catch (e) {
       alert(`Push to hub failed: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -114,22 +110,12 @@ export function Sidebar() {
   const handleHubPull = async () => {
     setHubSyncing('pull')
     try {
-      const res = await fetch('/api/hubvariables')
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const vars = await res.json() as Array<{ name: string; value?: string }>
-      const entry = vars.find((v) => v.name === 'BackupConfig')
-      if (!entry?.value) throw new Error('BackupConfig variable not found or empty')
-      // Try gzip+base64 decompression first; fall back to raw JSON for backwards compat
-      let data: GroupExportPayload
-      try {
-        const bytes = Uint8Array.from(atob(entry.value), (c) => c.charCodeAt(0))
-        const json = await new Response(
-          new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
-        ).text()
-        data = JSON.parse(json) as GroupExportPayload
-      } catch {
-        data = JSON.parse(entry.value) as GroupExportPayload
+      const res = await fetch('/api/hub-file/hubitat-dashboard-backup.json')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error?: string }
+        throw new Error(err.error ?? `HTTP ${res.status}`)
       }
+      const data = await res.json() as GroupExportPayload
       setPendingImport(data)
       setShowImportConfirm(true)
     } catch (e) {
@@ -324,7 +310,7 @@ export function Sidebar() {
             <button
               onClick={handleHubPush}
               disabled={hubSyncing !== null}
-              title="Push config to Hubitat hub variable"
+              title="Push config to Hubitat hub file manager"
               className={`flex items-center justify-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors disabled:opacity-40 ${
                 sidebarCollapsed ? 'w-full' : 'flex-1'
               }`}
@@ -335,7 +321,7 @@ export function Sidebar() {
             <button
               onClick={handleHubPull}
               disabled={hubSyncing !== null}
-              title="Pull config from Hubitat hub variable"
+              title="Pull config from Hubitat hub file manager"
               className={`flex items-center justify-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors disabled:opacity-40 ${
                 sidebarCollapsed ? 'w-full' : 'flex-1'
               }`}

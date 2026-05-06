@@ -18,6 +18,8 @@ class SettingsRepository @Inject constructor(
         const val KEY_GROUP_ORDER = "group_order"
         const val KEY_THEME_OVERRIDE = "theme_override"
         const val KEY_DEFAULT_GROUP_ID = "default_group_id"
+        const val KEY_HUB_USERNAME = "hub_username"
+        const val KEY_HUB_PASSWORD = "hub_password"
     }
 
     val localHubIp: String get() = prefs.getString(KEY_LOCAL_HUB_IP, "") ?: ""
@@ -29,6 +31,8 @@ class SettingsRepository @Inject constructor(
     val groupOrder: String get() = prefs.getString(KEY_GROUP_ORDER, "") ?: ""
     val themeOverride: String get() = prefs.getString(KEY_THEME_OVERRIDE, "system") ?: "system"
     val defaultGroupId: String get() = prefs.getString(KEY_DEFAULT_GROUP_ID, "environment") ?: "environment"
+    val hubUsername: String get() = prefs.getString(KEY_HUB_USERNAME, "") ?: ""
+    val hubPassword: String get() = prefs.getString(KEY_HUB_PASSWORD, "") ?: ""
 
     fun setLocalHubIp(value: String) = prefs.edit().putString(KEY_LOCAL_HUB_IP, value).apply()
     fun setMakerAppId(value: String) = prefs.edit().putString(KEY_MAKER_APP_ID, value).apply()
@@ -39,6 +43,8 @@ class SettingsRepository @Inject constructor(
     fun setGroupOrder(json: String) = prefs.edit().putString(KEY_GROUP_ORDER, json).apply()
     fun setThemeOverride(value: String) = prefs.edit().putString(KEY_THEME_OVERRIDE, value).apply()
     fun setDefaultGroupId(id: String) = prefs.edit().putString(KEY_DEFAULT_GROUP_ID, id).apply()
+    fun setHubUsername(value: String) = prefs.edit().putString(KEY_HUB_USERNAME, value).apply()
+    fun setHubPassword(value: String) = prefs.edit().putString(KEY_HUB_PASSWORD, value).apply()
 
     fun getDarkMode(): String = themeOverride
     fun setDarkMode(value: String) = setThemeOverride(value)
@@ -50,7 +56,9 @@ class SettingsRepository @Inject constructor(
         makerAppId: String,
         makerToken: String,
         cloudHubId: String,
-        connectionMode: ConnectionMode
+        connectionMode: ConnectionMode,
+        hubUsername: String = "",
+        hubPassword: String = ""
     ) {
         prefs.edit()
             .putString(KEY_LOCAL_HUB_IP, localHubIp)
@@ -58,6 +66,8 @@ class SettingsRepository @Inject constructor(
             .putString(KEY_MAKER_TOKEN, makerToken)
             .putString(KEY_CLOUD_HUB_ID, cloudHubId)
             .putString(KEY_CONNECTION_MODE, connectionMode.name)
+            .putString(KEY_HUB_USERNAME, hubUsername)
+            .putString(KEY_HUB_PASSWORD, hubPassword)
             .apply()
     }
 }

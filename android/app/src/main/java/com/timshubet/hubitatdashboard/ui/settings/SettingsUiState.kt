@@ -12,6 +12,8 @@ data class SettingsUiState(
     val isLoading: Boolean = false,
     val saveSuccess: Boolean = false,
     val snackbarMessage: String? = null,
+    val hubUsername: String = "",
+    val hubPassword: String = "",
     /** Non-null when a hub pull has been parsed and is awaiting user confirmation. */
     val pendingHubImportData: GroupExportData? = null
 )
