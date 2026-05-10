@@ -6,6 +6,7 @@ A local web-based dashboard for Hubitat Elevation home automation.
 
 | File | Description |
 |---|---|
+| [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) | **Complete user guide — start here if you're new. No programming knowledge required.** |
 | [`docs/ANALYSIS.md`](./docs/ANALYSIS.md) | Comprehensive project analysis, architecture overview, and startup guide |
 | [`docs/README.md`](./docs/README.md) | Quick-start setup guide |
 | [`docs/IMPLEMENTATION_PLAN.md`](./docs/IMPLEMENTATION_PLAN.md) | Full build plan and group/device mapping |
