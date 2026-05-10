@@ -49,7 +49,7 @@ function useGridColumns() {
   return cols
 }
 
-const PINNED_TYPES = new Set(['hsm', 'mode'])
+const PINNED_TYPES = new Set(['hsm'])
 
 /** Maps synthetic IDs (used in groupAdditions) → their TileConfig */
 const SPECIAL_TILE_MAP: Record<string, TileConfig> = {
@@ -220,7 +220,7 @@ function EditOverlay({
 
   const device        = devices[deviceId]
   const availTypes    = device ? availableTileTypes(device) : []
-  const currentType   = tileTypeOverrides[deviceId] ?? tile.tileType
+  const currentType   = (tileTypeOverrides[groupId] ?? {})[deviceId] ?? tile.tileType
   const showTypePicker = availTypes.length > 1
 
   const canRemove = !isOther
@@ -238,7 +238,7 @@ function EditOverlay({
   }
 
   const handleSetType = (type: TileType) => {
-    setTileTypeOverride(deviceId, type)
+    setTileTypeOverride(groupId, deviceId, type)
     showToast(`Tile type set to ${TILE_TYPE_LABELS[type] ?? type}`)
     setShowTypeMenu(false)
   }
@@ -405,8 +405,8 @@ function TileWrapper({
   // Apply per-device override here as a final guard — ensures the displayed
   // type is always current even if the tile config was built before the override.
   const effectiveTile: TileConfig =
-    tile.deviceId && tileTypeOverrides[tile.deviceId]
-      ? { ...tile, tileType: tileTypeOverrides[tile.deviceId] }
+    tile.deviceId && (tileTypeOverrides[groupId] ?? {})[tile.deviceId]
+      ? { ...tile, tileType: (tileTypeOverrides[groupId] ?? {})[tile.deviceId!] }
       : tile
 
   const isDraggable = editMode && !!dragHandlers
@@ -459,7 +459,7 @@ function OtherGroupPage() {
       Object.values(devices)
         .filter((d) => !claimed.has(d.id))
         .sort((a, b) => a.label.localeCompare(b.label))
-        .map((d) => ({ deviceId: d.id, label: d.label, tileType: tileTypeOverrides[d.id] ?? autoTileType(d) })),
+        .map((d) => ({ deviceId: d.id, label: d.label, tileType: (tileTypeOverrides['other'] ?? {})[d.id] ?? autoTileType(d) })),
     [devices, claimed, tileTypeOverrides],
   )
 
@@ -525,8 +525,8 @@ function StaticGroupPage({ groupId }: Props) {
   const exclusions = groupExclusions[groupId] ?? []
   const baseTiles = staticGroup.tiles
     .filter((t) => !t.deviceId || !exclusions.includes(t.deviceId))
-    .map((t) => t.deviceId && tileTypeOverrides[t.deviceId]
-      ? { ...t, tileType: tileTypeOverrides[t.deviceId] }
+    .map((t) => t.deviceId && (tileTypeOverrides[groupId] ?? {})[t.deviceId]
+      ? { ...t, tileType: (tileTypeOverrides[groupId] ?? {})[t.deviceId!] }
       : t)
   const baseTileDeviceIds = new Set(baseTiles.map((t) => t.deviceId).filter(Boolean))
   const addedIds = groupAdditions[groupId] ?? []
@@ -536,7 +536,7 @@ function StaticGroupPage({ groupId }: Props) {
       if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
       const device = devices[id]
       if (!device) return []
-      return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
+      return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? autoTileType(device) } as TileConfig]
     })
 
   const resolvedTiles = [...baseTiles, ...addedTiles]
@@ -668,7 +668,7 @@ function CustomGroupPage({ groupId }: Props) {
     if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
     const device = devices[id]
     if (!device) return []
-    return [{ deviceId: id, label: device.label, tileType: tileTypeOverrides[id] ?? autoTileType(device) } as TileConfig]
+    return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? autoTileType(device) } as TileConfig]
   })
 
   const currentDeviceIds = new Set(addedIds)

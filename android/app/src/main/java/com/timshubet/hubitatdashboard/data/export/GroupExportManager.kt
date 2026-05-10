@@ -14,6 +14,19 @@ import javax.inject.Singleton
  * JSON files are exchangeable between web and Android without any conversion tool.
  */
 data class GroupExportData(
+    val version: Int = 2,
+    @SerializedName("customGroups")    val customGroups: List<ExportCustomGroup> = emptyList(),
+    @SerializedName("groupAdditions")  val groupAdditions: Map<String, List<String>> = emptyMap(),
+    @SerializedName("groupExclusions") val groupExclusions: Map<String, List<String>> = emptyMap(),
+    @SerializedName("groupOrder")      val groupOrder: List<String> = emptyList(),
+    @SerializedName("childGroupOrder") val childGroupOrder: Map<String, List<String>> = emptyMap(),
+    // v2: groupId → (deviceId → typeString)
+    @SerializedName("tileTypeOverrides") val tileTypeOverrides: Map<String, Map<String, String>> = emptyMap(),
+    @SerializedName("tileOrder")       val tileOrder: Map<String, List<String>> = emptyMap()
+)
+
+/** Used only when parsing v1 export files where overrides were deviceId → typeString */
+private data class GroupExportDataV1(
     val version: Int = 1,
     @SerializedName("customGroups")    val customGroups: List<ExportCustomGroup> = emptyList(),
     @SerializedName("groupAdditions")  val groupAdditions: Map<String, List<String>> = emptyMap(),
@@ -90,8 +103,9 @@ class GroupExportManager @Inject constructor(
             ExportCustomGroup(id = it.id, displayName = it.displayName,
                 iconName = it.iconName, parentId = it.parentId)
         }
-        val tileTypeOverrides = groupRepository.tileTypeOverridesRaw
-            .mapValues { (_, v) -> toExportString(v) }
+        // v2 format: groupId → deviceId → typeString
+        val tileTypeOverrides: Map<String, Map<String, String>> = groupRepository.tileTypeOverridesRaw
+            .mapValues { (_, deviceMap) -> deviceMap.mapValues { (_, v) -> toExportString(v) } }
         val tileOrder = groupRepository.tileOrderRaw
             .mapValues { (_, ids) -> ids.map { tileOrderIdToExport(it) } }
 
@@ -112,17 +126,59 @@ class GroupExportManager @Inject constructor(
     // ------------------------------------------------------------------
 
     fun parseImportJson(json: String): Result<GroupExportData> = runCatching {
-        val raw = gson.fromJson(json, GroupExportData::class.java)
-            ?: error("Empty or null JSON")
-        // Convert tileTypeOverrides values to web format strings (they already are, but validate)
-        val safeOverrides = raw.tileTypeOverrides.filter { (_, v) ->
-            fromExportString(v) != null
+        // Peek at version to decide how to parse tileTypeOverrides
+        val versionProbe = runCatching {
+            gson.fromJson(json, GroupExportData::class.java)?.version ?: 1
+        }.getOrDefault(1)
+
+        if (versionProbe >= 2) {
+            // v2: tileTypeOverrides is groupId → deviceId → typeString
+            val raw = gson.fromJson(json, GroupExportData::class.java)
+                ?: error("Empty or null JSON")
+            val safeOverrides = raw.tileTypeOverrides.mapValues { (_, deviceMap) ->
+                deviceMap.filter { (_, v) -> fromExportString(v) != null }
+            }
+            val safeTileOrder = raw.tileOrder.mapValues { (_, ids) ->
+                ids.map { tileOrderIdFromExport(tileOrderIdToExport(it)) }
+            }
+            raw.copy(tileTypeOverrides = safeOverrides, tileOrder = safeTileOrder)
+        } else {
+            // v1: tileTypeOverrides was deviceId → typeString (global)
+            // Expand to per-group by applying to every group that contains each device
+            val rawV1 = gson.fromJson(json, GroupExportDataV1::class.java)
+                ?: error("Empty or null JSON")
+            val oldOverrides = rawV1.tileTypeOverrides.filter { (_, v) -> fromExportString(v) != null }
+
+            // Build per-group overrides from the v1 global map
+            val perGroup = mutableMapOf<String, MutableMap<String, String>>()
+            fun applyToGroup(groupId: String, deviceIds: Iterable<String>) {
+                for (deviceId in deviceIds) {
+                    val typeStr = oldOverrides[deviceId] ?: continue
+                    perGroup.getOrPut(groupId) { mutableMapOf() }[deviceId] = typeStr
+                }
+            }
+            for (staticGroup in com.timshubet.hubitatdashboard.data.model.groups) {
+                val staticDeviceIds = staticGroup.tiles.mapNotNull { it.deviceId }
+                applyToGroup(staticGroup.id, staticDeviceIds + (rawV1.groupAdditions[staticGroup.id] ?: emptyList()))
+            }
+            for (customGroup in rawV1.customGroups) {
+                applyToGroup(customGroup.id, rawV1.groupAdditions[customGroup.id] ?: emptyList())
+            }
+
+            val safeTileOrder = rawV1.tileOrder.mapValues { (_, ids) ->
+                ids.map { tileOrderIdFromExport(tileOrderIdToExport(it)) }
+            }
+            GroupExportData(
+                version         = 2,
+                customGroups    = rawV1.customGroups,
+                groupAdditions  = rawV1.groupAdditions,
+                groupExclusions = rawV1.groupExclusions,
+                groupOrder      = rawV1.groupOrder,
+                childGroupOrder = rawV1.childGroupOrder,
+                tileTypeOverrides = perGroup,
+                tileOrder       = safeTileOrder
+            )
         }
-        // Convert tileOrder IDs (already lowercase from web, but make consistent)
-        val safeTileOrder = raw.tileOrder.mapValues { (_, ids) ->
-            ids.map { tileOrderIdFromExport(tileOrderIdToExport(it)) }
-        }
-        raw.copy(tileTypeOverrides = safeOverrides, tileOrder = safeTileOrder)
     }
 
     fun importConfig(data: GroupExportData) {
@@ -130,9 +186,13 @@ class GroupExportManager @Inject constructor(
             CustomGroupData(id = it.id, displayName = it.displayName,
                 iconName = it.iconName, parentId = it.parentId)
         }
-        val androidTileTypeOverrides: Map<String, TileType> = data.tileTypeOverrides
-            .mapNotNull { (k, v) -> fromExportString(v)?.let { k to it } }
-            .toMap()
+        // v2 format: groupId → deviceId → TileType
+        val androidTileTypeOverrides: Map<String, Map<String, TileType>> =
+            data.tileTypeOverrides.mapValues { (_, deviceMap) ->
+                deviceMap.mapNotNull { (deviceId, v) ->
+                    fromExportString(v)?.let { deviceId to it }
+                }.toMap()
+            }
         val androidTileOrder = data.tileOrder.mapValues { (_, ids) ->
             ids.map { tileOrderIdFromExport(it) }
         }

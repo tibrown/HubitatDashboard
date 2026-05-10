@@ -1,7 +1,9 @@
 package com.timshubet.hubitatdashboard.ui.group
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +66,26 @@ private fun tileKey(tile: TileConfig): String = when {
     tile.tileType == TileType.HUB_VARIABLE && tile.hubVarName != null -> "hub-variable-${tile.hubVarName}"
     tile.deviceId != null -> tile.deviceId
     else -> tile.tileType.name
+}
+
+private fun subgroupStatusCounts(
+    tiles: List<com.timshubet.hubitatdashboard.data.model.TileConfig>,
+    devices: Map<String, com.timshubet.hubitatdashboard.data.model.DeviceState>
+): Pair<Int, Int> {
+    var active = 0
+    var inactive = 0
+    for (tile in tiles) {
+        val deviceId = tile.deviceId?.takeIf { it.isNotBlank() } ?: continue
+        val attrs = devices[deviceId]?.attributes ?: continue
+        when {
+            "switch"   in attrs -> if (attrs["switch"]   == "on")       active++ else inactive++
+            "contact"  in attrs -> if (attrs["contact"]  == "open")     active++ else inactive++
+            "motion"   in attrs -> if (attrs["motion"]   == "active")   active++ else inactive++
+            "presence" in attrs -> if (attrs["presence"] == "present")  active++ else inactive++
+            "lock"     in attrs -> if (attrs["lock"]     == "unlocked") active++ else inactive++
+        }
+    }
+    return Pair(active, inactive)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +168,7 @@ fun GroupScreen(
                 ?: return@let,
             onDismiss = { typePickTarget = null },
             onSelect = { newType ->
-                groupEditViewModel.setTileTypeOverride(deviceId, newType)
+                groupEditViewModel.setTileTypeOverride(groupId, deviceId, newType)
             }
         )
     }
@@ -305,6 +328,7 @@ fun GroupScreen(
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     )
                                     childGroups.forEach { child ->
+                                        val (activeCount, inactiveCount) = subgroupStatusCounts(child.tiles, devices)
                                         Surface(
                                             shape = MaterialTheme.shapes.medium,
                                             color = MaterialTheme.colorScheme.surfaceVariant,
@@ -325,7 +349,67 @@ fun GroupScreen(
                                                 )
                                                 Text(
                                                     text = child.displayName,
-                                                    style = MaterialTheme.typography.bodyLarge
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                if (activeCount > 0 || inactiveCount > 0) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        if (activeCount > 0) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(6.dp)
+                                                                        .background(
+                                                                            color = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+                                                                            shape = CircleShape
+                                                                        )
+                                                                )
+                                                                Text(
+                                                                    text = activeCount.toString(),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                                                )
+                                                            }
+                                                        }
+                                                        if (inactiveCount > 0) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(6.dp)
+                                                                        .background(
+                                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                                                            shape = CircleShape
+                                                                        )
+                                                                )
+                                                                Text(
+                                                                    text = inactiveCount.toString(),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                } else if (child.tiles.none { !it.deviceId.isNullOrBlank() }) {
+                                                    Text(
+                                                        text = "empty",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                }
+                                                Icon(
+                                                    imageVector = Icons.Default.ChevronRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                    modifier = Modifier.size(16.dp)
                                                 )
                                             }
                                         }

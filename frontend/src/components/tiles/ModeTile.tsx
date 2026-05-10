@@ -52,7 +52,6 @@ export function ModeTile() {
         collapsed={collapsed}
         onToggle={toggleCollapsed}
         header={header}
-        className="col-span-2"
       >
         <div className="grid grid-cols-3 gap-1.5">
           {modes.map((mode) => (

@@ -37,6 +37,8 @@ class GroupRepository @Inject constructor(
         private const val KEY_GROUP_EXCLUSIONS = "group_exclusions"
         private const val KEY_GROUP_ORDER = "group_order"
         private const val KEY_TILE_TYPE_OVERRIDES = "tile_type_overrides"
+        // v2 stores overrides keyed by groupId → deviceId → TileType (per-group overrides)
+        private const val KEY_TILE_TYPE_OVERRIDES_V2 = "tile_type_overrides_v2"
         private const val KEY_TILE_ORDER = "tile_order"
         private const val KEY_CHILD_GROUP_ORDER = "child_group_order"
     }
@@ -45,7 +47,8 @@ class GroupRepository @Inject constructor(
     private val _groupAdditions = MutableStateFlow(loadStringListMap(KEY_GROUP_ADDITIONS))
     private val _groupExclusions = MutableStateFlow(loadStringListMap(KEY_GROUP_EXCLUSIONS))
     private val _groupOrder = MutableStateFlow(loadStringList(KEY_GROUP_ORDER))
-    private val _tileTypeOverrides = MutableStateFlow(loadTileTypeOverrides())
+    // Per-group tile type overrides: groupId → deviceId → TileType
+    private val _tileTypeOverrides = MutableStateFlow(loadTileTypeOverridesV2())
     private val _tileOrder = MutableStateFlow(loadStringListMap(KEY_TILE_ORDER))
     private val _childGroupOrder = MutableStateFlow(loadStringListMap(KEY_CHILD_GROUP_ORDER))
 
@@ -58,7 +61,8 @@ class GroupRepository @Inject constructor(
     val groupExclusionsRaw: Map<String, List<String>> get() = _groupExclusions.value
     val groupOrderRaw: List<String> get() = _groupOrder.value
     val childGroupOrderRaw: Map<String, List<String>> get() = _childGroupOrder.value
-    val tileTypeOverridesRaw: Map<String, TileType> get() = _tileTypeOverrides.value
+    /** Per-group tile type overrides: groupId → deviceId → TileType */
+    val tileTypeOverridesRaw: Map<String, Map<String, TileType>> get() = _tileTypeOverrides.value
     val tileOrderRaw: Map<String, List<String>> get() = _tileOrder.value
 
     val resolvedGroupsFlow: StateFlow<List<GroupConfig>> =
@@ -195,8 +199,12 @@ class GroupRepository @Inject constructor(
         saveAll()
     }
 
-    fun setTileTypeOverride(deviceId: String, tileType: TileType) {
-        _tileTypeOverrides.value = _tileTypeOverrides.value + (deviceId to tileType)
+    fun setTileTypeOverride(groupId: String, deviceId: String, tileType: TileType) {
+        val current = _tileTypeOverrides.value.toMutableMap()
+        val groupOverrides = current[groupId]?.toMutableMap() ?: mutableMapOf()
+        groupOverrides[deviceId] = tileType
+        current[groupId] = groupOverrides
+        _tileTypeOverrides.value = current
         saveAll()
     }
 
@@ -215,16 +223,17 @@ class GroupRepository @Inject constructor(
         for (staticGroup in groups) {
             val exclusions = groupExclusions[staticGroup.id] ?: emptyList()
             val additions = groupAdditions[staticGroup.id] ?: emptyList()
+            val groupOverrides = tileTypeOverrides[staticGroup.id] ?: emptyMap()
 
             var tiles = staticGroup.tiles.filter { tile ->
                 if (!tile.deviceId.isNullOrBlank()) tile.deviceId !in exclusions else true
             }
             tiles = tiles.map { tile ->
-                val override = tile.deviceId?.let { tileTypeOverrides[it] }
+                val override = tile.deviceId?.let { groupOverrides[it] }
                 if (override != null) tile.copy(tileType = override) else tile
             }
             val addedTiles = additions.mapNotNull { deviceId ->
-                buildTileConfig(deviceId, devices, tileTypeOverrides)
+                buildTileConfig(deviceId, devices, groupOverrides)
             }
             tiles = applyTileOrder(tiles + addedTiles, tileOrder[staticGroup.id])
             resolvedMap[staticGroup.id] = staticGroup.copy(tiles = tiles)
@@ -232,9 +241,10 @@ class GroupRepository @Inject constructor(
 
         for (customGroup in customGroups) {
             val additions = groupAdditions[customGroup.id] ?: emptyList()
+            val groupOverrides = tileTypeOverrides[customGroup.id] ?: emptyMap()
             val tiles = applyTileOrder(
                 additions.mapNotNull { deviceId ->
-                    buildTileConfig(deviceId, devices, tileTypeOverrides)
+                    buildTileConfig(deviceId, devices, groupOverrides)
                 },
                 tileOrder[customGroup.id]
             )
@@ -275,7 +285,7 @@ class GroupRepository @Inject constructor(
     private fun buildTileConfig(
         deviceId: String,
         devices: Map<String, com.timshubet.hubitatdashboard.data.model.DeviceState>,
-        tileTypeOverrides: Map<String, TileType>
+        groupOverrides: Map<String, TileType>
     ): TileConfig? {
         return when (deviceId) {
             "__hsm__"      -> TileConfig(deviceId = null, label = "Security System", tileType = TileType.HSM)
@@ -286,7 +296,7 @@ class GroupRepository @Inject constructor(
             "__astronomicaldusk__" -> TileConfig(deviceId = null, label = "Full Dark", tileType = TileType.HUB_VARIABLE, hubVarName = "AstronomicalDusk")
             else -> {
                 val device = devices[deviceId]
-                val tileType = tileTypeOverrides[deviceId]
+                val tileType = groupOverrides[deviceId]
                     ?: if (device != null) autoTileType(device) else TileType.SWITCH
                 val label = device?.label ?: deviceId
                 TileConfig(deviceId = deviceId, label = label, tileType = tileType)
@@ -320,7 +330,7 @@ class GroupRepository @Inject constructor(
         groupExclusions: Map<String, List<String>>,
         groupOrder: List<String>,
         childGroupOrder: Map<String, List<String>>,
-        tileTypeOverrides: Map<String, TileType>,
+        tileTypeOverrides: Map<String, Map<String, TileType>>,
         tileOrder: Map<String, List<String>>
     ) {
         // Preserve static group IDs not present in the imported order
@@ -344,7 +354,11 @@ class GroupRepository @Inject constructor(
             .putString(KEY_GROUP_ADDITIONS, gson.toJson(_groupAdditions.value))
             .putString(KEY_GROUP_EXCLUSIONS, gson.toJson(_groupExclusions.value))
             .putString(KEY_GROUP_ORDER, gson.toJson(_groupOrder.value))
-            .putString(KEY_TILE_TYPE_OVERRIDES, gson.toJson(_tileTypeOverrides.value.mapValues { it.value.name }))
+            .putString(KEY_TILE_TYPE_OVERRIDES_V2, gson.toJson(
+                _tileTypeOverrides.value.mapValues { (_, deviceMap) ->
+                    deviceMap.mapValues { it.value.name }
+                }
+            ))
             .putString(KEY_TILE_ORDER, gson.toJson(_tileOrder.value))
             .putString(KEY_CHILD_GROUP_ORDER, gson.toJson(_childGroupOrder.value))
             .apply()
@@ -371,13 +385,60 @@ class GroupRepository @Inject constructor(
         } catch (e: Exception) { emptyList() }
     }
 
-    private fun loadTileTypeOverrides(): Map<String, TileType> {
-        val json = prefs.getString(KEY_TILE_TYPE_OVERRIDES, null) ?: return emptyMap()
+    private fun loadTileTypeOverridesV2(): Map<String, Map<String, TileType>> {
+        // Try loading v2 format first (groupId → deviceId → TileType)
+        val v2Json = prefs.getString(KEY_TILE_TYPE_OVERRIDES_V2, null)
+        if (v2Json != null) {
+            return try {
+                val raw: Map<String, Map<String, String>> = gson.fromJson(
+                    v2Json,
+                    object : TypeToken<Map<String, Map<String, String>>>() {}.type
+                )
+                raw.mapValues { (_, deviceMap) ->
+                    deviceMap.mapNotNull { (deviceId, typeName) ->
+                        try { deviceId to TileType.valueOf(typeName) } catch (e: Exception) { null }
+                    }.toMap()
+                }
+            } catch (e: Exception) { emptyMap() }
+        }
+
+        // Migrate from v1: old format was Map<deviceId, typeName> — global override
+        val v1Json = prefs.getString(KEY_TILE_TYPE_OVERRIDES, null) ?: return emptyMap()
         return try {
-            val raw: Map<String, String> = gson.fromJson(json, object : TypeToken<Map<String, String>>() {}.type)
-            raw.mapNotNull { (k, v) ->
+            val oldRaw: Map<String, String> = gson.fromJson(
+                v1Json,
+                object : TypeToken<Map<String, String>>() {}.type
+            )
+            val oldOverrides: Map<String, TileType> = oldRaw.mapNotNull { (k, v) ->
                 try { k to TileType.valueOf(v) } catch (e: Exception) { null }
             }.toMap()
+
+            if (oldOverrides.isEmpty()) return emptyMap()
+
+            // Expand global override to every group that contains each device
+            val groupAdditions = loadStringListMap(KEY_GROUP_ADDITIONS)
+            val result = mutableMapOf<String, MutableMap<String, TileType>>()
+
+            fun applyIfContains(groupId: String, deviceIds: Iterable<String>) {
+                for (deviceId in deviceIds) {
+                    val override = oldOverrides[deviceId] ?: continue
+                    result.getOrPut(groupId) { mutableMapOf() }[deviceId] = override
+                }
+            }
+
+            // Static groups
+            for (staticGroup in groups) {
+                val staticDeviceIds = staticGroup.tiles.mapNotNull { it.deviceId }
+                val addedIds = groupAdditions[staticGroup.id] ?: emptyList()
+                applyIfContains(staticGroup.id, staticDeviceIds + addedIds)
+            }
+            // Custom groups
+            val customGroupIds = loadCustomGroups().map { it.id }
+            for (groupId in customGroupIds) {
+                applyIfContains(groupId, groupAdditions[groupId] ?: emptyList())
+            }
+
+            result
         } catch (e: Exception) { emptyMap() }
     }
 }

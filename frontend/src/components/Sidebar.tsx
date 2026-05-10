@@ -48,7 +48,7 @@ export function Sidebar() {
 
   const handleExport = () => {
     const payload: GroupExportPayload = {
-      version: 1,
+      version: 2,
       customGroups,
       groupAdditions,
       groupExclusions,
@@ -85,7 +85,7 @@ export function Sidebar() {
     setHubSyncing('push')
     try {
       const payload: GroupExportPayload = {
-        version: 1,
+        version: 2,
         customGroups,
         groupAdditions,
         groupExclusions,

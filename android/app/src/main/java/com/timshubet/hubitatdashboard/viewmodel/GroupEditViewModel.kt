@@ -46,7 +46,7 @@ class GroupEditViewModel @Inject constructor(
         groupRepository.addDeviceToGroup(groupId, deviceId)
         val device = deviceRepository.devices.value[deviceId]
         if (device != null && tileType != autoTileType(device)) {
-            groupRepository.setTileTypeOverride(deviceId, tileType)
+            groupRepository.setTileTypeOverride(groupId, deviceId, tileType)
         }
     }
 
@@ -66,6 +66,6 @@ class GroupEditViewModel @Inject constructor(
     fun setTileOrder(groupId: String, orderedIds: List<String>) =
         groupRepository.setTileOrder(groupId, orderedIds)
 
-    fun setTileTypeOverride(deviceId: String, tileType: TileType) =
-        groupRepository.setTileTypeOverride(deviceId, tileType)
+    fun setTileTypeOverride(groupId: String, deviceId: String, tileType: TileType) =
+        groupRepository.setTileTypeOverride(groupId, deviceId, tileType)
 }

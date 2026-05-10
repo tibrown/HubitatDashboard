@@ -11,7 +11,8 @@ export interface GroupExportPayload {
   groupExclusions: Record<string, string[]>
   groupOrder: string[]
   childGroupOrder: Record<string, string[]>
-  tileTypeOverrides: Record<string, string>
+  /** v2: groupId → deviceId → typeString; v1 (legacy): deviceId → typeString */
+  tileTypeOverrides: Record<string, Record<string, string>> | Record<string, string>
   tileOrder: Record<string, string[]>
 }
 
@@ -34,8 +35,8 @@ interface GroupStore {
   groupOrder: string[]
   /** Ordered sub-group IDs per parent: childGroupOrder[parentId] = [childId, ...] */
   childGroupOrder: Record<string, string[]>
-  /** Per-device tile type overrides — user-selected type takes precedence over autoTileType. */
-  tileTypeOverrides: Record<string, TileType>
+  /** Per-group, per-device tile type overrides: groupId → deviceId → TileType. */
+  tileTypeOverrides: Record<string, Record<string, TileType>>
   /** Per-group custom tile order — maps groupId to ordered list of tile IDs (deviceId or tileType). */
   tileOrder: Record<string, string[]>
 
@@ -50,7 +51,7 @@ interface GroupStore {
   moveGroupDown: (id: string) => void
   moveSubGroupUp: (parentId: string, id: string) => void
   moveSubGroupDown: (parentId: string, id: string) => void
-  setTileTypeOverride: (deviceId: string, tileType: TileType) => void
+  setTileTypeOverride: (groupId: string, deviceId: string, tileType: TileType) => void
   setTileOrder: (groupId: string, orderedIds: string[]) => void
   /** Replaces all dynamic config with imported data. Static group IDs are preserved in groupOrder. */
   importState: (data: GroupExportPayload) => void
@@ -78,6 +79,42 @@ export function allGroupsForDevice(
     .filter(([, ids]) => ids.includes(deviceId))
     .map(([gId]) => gId)
   return [...new Set([...staticIds, ...addedTo])]
+}
+
+/** Expands v1 flat (deviceId → TileType) overrides to v2 per-group format. */
+function expandV1Overrides(
+  flatOverrides: Record<string, TileType>,
+  groupAdditions: Record<string, string[]>,
+  customGroups: CustomGroup[],
+): Record<string, Record<string, TileType>> {
+  const result: Record<string, Record<string, TileType>> = {}
+
+  const applyToGroup = (groupId: string, deviceIds: string[]) => {
+    for (const deviceId of deviceIds) {
+      const tileType = flatOverrides[deviceId]
+      if (!tileType) continue
+      if (!result[groupId]) result[groupId] = {}
+      result[groupId][deviceId] = tileType
+    }
+  }
+
+  for (const group of staticGroups) {
+    const staticDeviceIds = group.tiles.map((t) => t.deviceId).filter((id): id is string => !!id)
+    applyToGroup(group.id, [...staticDeviceIds, ...(groupAdditions[group.id] ?? [])])
+  }
+
+  const staticGroupIds = new Set(STATIC_GROUP_IDS)
+  for (const group of customGroups) {
+    applyToGroup(group.id, groupAdditions[group.id] ?? [])
+  }
+  // Also cover any custom groups in groupAdditions not in customGroups list
+  for (const groupId of Object.keys(groupAdditions)) {
+    if (!staticGroupIds.has(groupId)) {
+      applyToGroup(groupId, groupAdditions[groupId])
+    }
+  }
+
+  return result
 }
 
 export const useGroupStore = create<GroupStore>()(
@@ -218,9 +255,12 @@ export const useGroupStore = create<GroupStore>()(
           return { childGroupOrder: { ...s.childGroupOrder, [parentId]: order } }
         }),
 
-      setTileTypeOverride: (deviceId, tileType) =>
+      setTileTypeOverride: (groupId, deviceId, tileType) =>
         set((s) => ({
-          tileTypeOverrides: { ...s.tileTypeOverrides, [deviceId]: tileType },
+          tileTypeOverrides: {
+            ...s.tileTypeOverrides,
+            [groupId]: { ...(s.tileTypeOverrides[groupId] ?? {}), [deviceId]: tileType },
+          },
         })),
 
       setTileOrder: (groupId, orderedIds) =>
@@ -233,13 +273,25 @@ export const useGroupStore = create<GroupStore>()(
           for (const id of STATIC_GROUP_IDS) {
             if (!mergedOrder.includes(id)) mergedOrder.push(id)
           }
+
+          // Detect v1 (flat deviceId→type) vs v2 (nested groupId→deviceId→type)
+          const rawOverrides = data.tileTypeOverrides as Record<string, unknown>
+          const isV1 = data.version < 2 || Object.values(rawOverrides).some((v) => typeof v === 'string')
+          let tileTypeOverrides: Record<string, Record<string, TileType>>
+          if (isV1) {
+            const flatOverrides = rawOverrides as Record<string, TileType>
+            tileTypeOverrides = expandV1Overrides(flatOverrides, data.groupAdditions, data.customGroups)
+          } else {
+            tileTypeOverrides = rawOverrides as Record<string, Record<string, TileType>>
+          }
+
           return {
             customGroups:      data.customGroups,
             groupAdditions:    data.groupAdditions,
             groupExclusions:   data.groupExclusions,
             groupOrder:        mergedOrder,
             childGroupOrder:   data.childGroupOrder,
-            tileTypeOverrides: data.tileTypeOverrides as Record<string, TileType>,
+            tileTypeOverrides,
             tileOrder:         data.tileOrder,
           }
         }),
@@ -254,7 +306,24 @@ export const useGroupStore = create<GroupStore>()(
         for (const id of STATIC_GROUP_IDS) {
           if (!merged.includes(id)) merged.push(id)
         }
-        return { ...current, ...stored, groupOrder: merged }
+
+        // Migrate tileTypeOverrides from v1 flat format if needed
+        const rawOverrides = stored.tileTypeOverrides as Record<string, unknown> | undefined
+        let tileTypeOverrides: Record<string, Record<string, TileType>> = {}
+        if (rawOverrides) {
+          const isV1 = Object.values(rawOverrides).some((v) => typeof v === 'string')
+          if (isV1) {
+            tileTypeOverrides = expandV1Overrides(
+              rawOverrides as Record<string, TileType>,
+              stored.groupAdditions ?? {},
+              stored.customGroups ?? [],
+            )
+          } else {
+            tileTypeOverrides = rawOverrides as Record<string, Record<string, TileType>>
+          }
+        }
+
+        return { ...current, ...stored, groupOrder: merged, tileTypeOverrides }
       },
     },
   ),
