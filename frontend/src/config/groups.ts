@@ -268,7 +268,7 @@ export const groups: GroupConfig[] = [
       { deviceId: '783', label: "Tim's Phone Home", tileType: 'connector' },
       { deviceId: '1306', label: "Tim's Phone Home HD", tileType: 'connector' },
       { deviceId: '1268', label: 'Traveling', tileType: 'connector' },
-      { deviceId: '1297', label: 'Water Is On', tileType: 'connector' },
+      { deviceId: '1297', label: 'Water Is On', tileType: 'connector', hubVarName: 'WaterTimeout' },
     ],
   },
   {

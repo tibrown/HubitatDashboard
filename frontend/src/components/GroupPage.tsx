@@ -32,6 +32,24 @@ interface Props {
   groupId: string
 }
 
+/** Map from deviceId → hubVarName, derived from static group config. */
+const staticHubVarByDeviceId: Record<string, string> = Object.fromEntries(
+  staticGroups.flatMap((g) =>
+    g.tiles
+      .filter((t) => t.deviceId && t.hubVarName)
+      .map((t) => [t.deviceId!, t.hubVarName!]),
+  ),
+)
+
+/** Map from deviceId → tileType, derived from static group config. */
+const staticTileTypeByDeviceId: Record<string, string> = Object.fromEntries(
+  staticGroups.flatMap((g) =>
+    g.tiles
+      .filter((t) => t.deviceId && t.tileType)
+      .map((t) => [t.deviceId!, t.tileType!]),
+  ),
+)
+
 function useGridColumns() {
   const getColumns = () => {
     const w = window.innerWidth
@@ -136,7 +154,7 @@ function tileKey(tile: TileConfig, fallback: string): string {
 
 function renderTile(tile: TileConfig) {
   const id = tileKey(tile, tile.tileType ?? 'tile')
-  const base = { deviceId: tile.deviceId ?? '', label: tile.label }
+  const base = { deviceId: tile.deviceId ?? '', label: tile.label, hubVarName: tile.hubVarName }
   switch (tile.tileType) {
     case 'switch':         return <SwitchTile key={id} {...base} />
     case 'dimmer':         return <DimmerTile key={id} {...base} />
@@ -536,10 +554,10 @@ function StaticGroupPage({ groupId }: Props) {
       if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
       const device = devices[id]
       if (!device) return []
-      return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? autoTileType(device) } as TileConfig]
+      return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? staticTileTypeByDeviceId[id] ?? autoTileType(device), hubVarName: staticHubVarByDeviceId[id] } as TileConfig]
     })
 
-  const resolvedTiles = [...baseTiles, ...addedTiles]
+  const resolvedTiles= [...baseTiles, ...addedTiles]
   const pinnedTiles   = resolvedTiles.filter((t) => PINNED_TYPES.has(t.tileType))
   const restTiles     = resolvedTiles.filter((t) => !PINNED_TYPES.has(t.tileType))
 
@@ -668,7 +686,7 @@ function CustomGroupPage({ groupId }: Props) {
     if (id in SPECIAL_TILE_MAP) return [SPECIAL_TILE_MAP[id]]
     const device = devices[id]
     if (!device) return []
-    return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? autoTileType(device) } as TileConfig]
+    return [{ deviceId: id, label: device.label, tileType: (tileTypeOverrides[groupId] ?? {})[id] ?? staticTileTypeByDeviceId[id] ?? autoTileType(device), hubVarName: staticHubVarByDeviceId[id] } as TileConfig]
   })
 
   const currentDeviceIds = new Set(addedIds)

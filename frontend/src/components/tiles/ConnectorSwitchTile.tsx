@@ -1,7 +1,8 @@
-import { useDeviceAttribute, useDeviceIdByLabel } from '../../store/deviceStore'
+import { useEffect, useState } from 'react'
+import { useDeviceAttribute, useDeviceIdByLabel, useHubVariable } from '../../store/deviceStore'
 import { useCommand } from '../../hooks/useCommand'
 
-interface Props { deviceId: string; label: string }
+interface Props { deviceId: string; label: string; hubVarName?: string }
 
 function getBadgeColors(label: string, isOn: boolean): string {
   if (!isOn) return 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -15,11 +16,19 @@ function getBadgeColors(label: string, isOn: boolean): string {
   return 'bg-green-500 text-white'
 }
 
-export function ConnectorSwitchTile({ deviceId: propDeviceId, label }: Props) {
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+export function ConnectorSwitchTile({ deviceId: propDeviceId, label, hubVarName }: Props) {
   const resolvedByLabel = useDeviceIdByLabel(label)
   const deviceId = propDeviceId || resolvedByLabel
   const switchState = useDeviceAttribute(deviceId, 'switch')
+  const hubVarValue = useHubVariable(hubVarName ?? '')
   const [execute] = useCommand()
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
 
   const toggle = () => {
     const next = switchState === 'on' ? 'off' : 'on'
@@ -27,6 +36,27 @@ export function ConnectorSwitchTile({ deviceId: propDeviceId, label }: Props) {
   }
 
   const isOn = switchState === 'on'
+
+  useEffect(() => {
+    if (!isOn || !hubVarName || hubVarValue === undefined) {
+      setSecondsLeft(null)
+      return
+    }
+
+    const totalSeconds = Number(hubVarValue) * 60
+    const startTime = Date.now()
+
+    const update = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      setSecondsLeft(Math.max(0, totalSeconds - elapsed))
+    }
+
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [isOn, hubVarName, hubVarValue, deviceId])
+
+  const showAutoOff = isOn && hubVarName && secondsLeft !== null
   const badgeClass = getBadgeColors(label, isOn)
 
   return (
@@ -36,7 +66,10 @@ export function ConnectorSwitchTile({ deviceId: propDeviceId, label }: Props) {
       aria-pressed={isOn}
       aria-label={`${label}: ${isOn ? 'on' : 'off'}`}
     >
-      {label}
+      <div className="flex flex-col leading-tight">
+        <span>{label}</span>
+        {showAutoOff && <span className="text-[11px] font-normal mt-0.5">Auto-off: {formatCountdown(secondsLeft!)}</span>}
+      </div>
     </button>
   )
 }
