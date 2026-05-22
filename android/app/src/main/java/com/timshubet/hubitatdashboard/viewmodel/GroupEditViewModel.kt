@@ -3,6 +3,7 @@ package com.timshubet.hubitatdashboard.viewmodel
 import androidx.lifecycle.ViewModel
 import com.timshubet.hubitatdashboard.data.model.CustomGroupData
 import com.timshubet.hubitatdashboard.data.model.GroupConfig
+import com.timshubet.hubitatdashboard.data.model.MultiTileConfig
 import com.timshubet.hubitatdashboard.data.model.TileType
 import com.timshubet.hubitatdashboard.data.repository.DeviceRepository
 import com.timshubet.hubitatdashboard.data.repository.GroupRepository
@@ -30,6 +31,7 @@ class GroupEditViewModel @Inject constructor(
 
     val resolvedGroups: StateFlow<List<GroupConfig>> = groupRepository.resolvedGroupsFlow
     val customGroups: StateFlow<List<CustomGroupData>> = groupRepository.customGroups
+    val multiTileConfigs: StateFlow<Map<String, MultiTileConfig>> = groupRepository.multiTileConfigs
 
     fun toggleEditMode() {
         _isEditMode.value = !_isEditMode.value

@@ -223,7 +223,9 @@ class SettingsViewModel @Inject constructor(
     fun confirmHubPull() {
         val data = _uiState.value.pendingHubImportData ?: return
         groupExportManager.importConfig(data)
-        _uiState.update { it.copy(pendingHubImportData = null, snackbarMessage = "Config pulled from hub") }
+        // saveSuccess = true triggers onSaveSuccess() in SettingsScreen, which navigates back
+        // to the groups screen and refreshes devices — the correct behaviour after an import.
+        _uiState.update { it.copy(pendingHubImportData = null, saveSuccess = true) }
     }
 
     fun cancelHubPull() {

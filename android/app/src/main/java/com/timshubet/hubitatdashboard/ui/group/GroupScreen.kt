@@ -56,6 +56,7 @@ import com.timshubet.hubitatdashboard.ui.edit.TileTypePickerSheet
 import com.timshubet.hubitatdashboard.ui.edit.availableTileTypes
 import com.timshubet.hubitatdashboard.ui.edit.iconForName
 import com.timshubet.hubitatdashboard.ui.theme.TileTokens
+import com.timshubet.hubitatdashboard.ui.tiles.MultiDeviceTileCard
 import com.timshubet.hubitatdashboard.viewmodel.DeviceViewModel
 import com.timshubet.hubitatdashboard.viewmodel.GroupEditViewModel
 import kotlinx.coroutines.launch
@@ -117,6 +118,7 @@ fun GroupScreen(
     val hubVariables by viewModel.hubVariables.collectAsState()
     val hsmStatus by viewModel.hsmStatus.collectAsState()
     val modes by viewModel.modes.collectAsState()
+    val multiTileConfigs by groupEditViewModel.multiTileConfigs.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     var showDevicePicker by remember { mutableStateOf(false) }
     var typePickTarget by remember { mutableStateOf<Pair<String, DeviceState>?>(null) }
@@ -211,7 +213,8 @@ fun GroupScreen(
                             items = orderedTiles,
                             key = { tile -> tileKey(tile) },
                             span = { tile ->
-                                if (tile.tileType == TileType.MODE || tile.tileType == TileType.HSM) {
+                                if (tile.tileType == TileType.MODE || tile.tileType == TileType.HSM ||
+                                    tile.tileType == TileType.MULTI_DEVICE) {
                                     GridItemSpan(maxLineSpan)
                                 } else {
                                     GridItemSpan(1)
@@ -256,19 +259,30 @@ fun GroupScreen(
                                         } else Modifier
                                     )
                             ) {
-                                TileCard(
-                                    tile = tile,
-                                    device = device,
-                                    onCommand = { deviceId, command, value ->
-                                        viewModel.sendCommand(deviceId, command, value)
-                                    },
-                                    hubVariables = hubVariables,
-                                    hsmStatus = hsmStatus,
-                                    modes = modes,
-                                    onSetHsmMode = { mode -> viewModel.setHsmMode(mode) },
-                                    onSetMode = { modeId -> viewModel.setMode(modeId) },
-                                    onSetVariable = { name, value -> viewModel.setHubVariable(name, value) }
-                                )
+                                if (tile.tileType == TileType.MULTI_DEVICE) {
+                                    MultiDeviceTileCard(
+                                        tile = tile,
+                                        config = tile.deviceId?.let { multiTileConfigs[it] },
+                                        devices = devices,
+                                        onCommand = { deviceId, command, value ->
+                                            viewModel.sendCommand(deviceId, command, value)
+                                        }
+                                    )
+                                } else {
+                                    TileCard(
+                                        tile = tile,
+                                        device = device,
+                                        onCommand = { deviceId, command, value ->
+                                            viewModel.sendCommand(deviceId, command, value)
+                                        },
+                                        hubVariables = hubVariables,
+                                        hsmStatus = hsmStatus,
+                                        modes = modes,
+                                        onSetHsmMode = { mode -> viewModel.setHsmMode(mode) },
+                                        onSetMode = { modeId -> viewModel.setMode(modeId) },
+                                        onSetVariable = { name, value -> viewModel.setHubVariable(name, value) }
+                                    )
+                                }
                                 if (isEditMode) {
                                     val removableId = when {
                                         !tile.deviceId.isNullOrBlank() -> tile.deviceId

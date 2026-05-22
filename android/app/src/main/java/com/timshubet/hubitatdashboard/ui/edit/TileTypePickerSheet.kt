@@ -41,6 +41,8 @@ private fun TileType.displayName(): String = when (this) {
     TileType.HUB_VARIABLE -> "Hub Variable"
     TileType.HSM         -> "Security System"
     TileType.MODE        -> "Hub Mode"
+    TileType.SUN_TIMES   -> "Sun Times (web only)"
+    TileType.MULTI_DEVICE -> "Multi-Device (web only)"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

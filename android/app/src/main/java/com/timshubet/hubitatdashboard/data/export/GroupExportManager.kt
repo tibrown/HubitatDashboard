@@ -3,6 +3,7 @@ package com.timshubet.hubitatdashboard.data.export
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.timshubet.hubitatdashboard.data.model.CustomGroupData
+import com.timshubet.hubitatdashboard.data.model.MultiTileConfig
 import com.timshubet.hubitatdashboard.data.model.TileType
 import com.timshubet.hubitatdashboard.data.repository.GroupRepository
 import javax.inject.Inject
@@ -22,7 +23,10 @@ data class GroupExportData(
     @SerializedName("childGroupOrder") val childGroupOrder: Map<String, List<String>> = emptyMap(),
     // v2: groupId → (deviceId → typeString)
     @SerializedName("tileTypeOverrides") val tileTypeOverrides: Map<String, Map<String, String>> = emptyMap(),
-    @SerializedName("tileOrder")       val tileOrder: Map<String, List<String>> = emptyMap()
+    @SerializedName("tileOrder")       val tileOrder: Map<String, List<String>> = emptyMap(),
+    // Preserved opaque so multi-device tile configs survive web→Android→web round-trips.
+    // Android does not render these tiles but stores and re-exports the config unchanged.
+    @SerializedName("multiTileConfigs") val multiTileConfigs: Map<String, MultiTileConfig> = emptyMap()
 )
 
 /** Used only when parsing v1 export files where overrides were deviceId → typeString */
@@ -71,7 +75,9 @@ class GroupExportManager @Inject constructor(
         TileType.MODE           to "mode",
         TileType.RING_DETECTION to "ring-detection",
         TileType.PRESENCE       to "presence",
-        TileType.BATTERY        to "battery"
+        TileType.BATTERY        to "battery",
+        TileType.SUN_TIMES      to "sun-times",
+        TileType.MULTI_DEVICE   to "multi-device"
     )
 
     private val fromWebFormat: Map<String, TileType> = toWebFormat.entries
@@ -110,13 +116,14 @@ class GroupExportManager @Inject constructor(
             .mapValues { (_, ids) -> ids.map { tileOrderIdToExport(it) } }
 
         val data = GroupExportData(
-            customGroups    = customGroups,
-            groupAdditions  = groupRepository.groupAdditionsRaw,
-            groupExclusions = groupRepository.groupExclusionsRaw,
-            groupOrder      = groupRepository.groupOrderRaw,
-            childGroupOrder = groupRepository.childGroupOrderRaw,
+            customGroups      = customGroups,
+            groupAdditions    = groupRepository.groupAdditionsRaw,
+            groupExclusions   = groupRepository.groupExclusionsRaw,
+            groupOrder        = groupRepository.groupOrderRaw,
+            childGroupOrder   = groupRepository.childGroupOrderRaw,
             tileTypeOverrides = tileTypeOverrides,
-            tileOrder       = tileOrder
+            tileOrder         = tileOrder,
+            multiTileConfigs  = groupRepository.multiTileConfigsRaw
         )
         return gson.toJson(data)
     }
@@ -203,7 +210,8 @@ class GroupExportManager @Inject constructor(
             groupOrder        = data.groupOrder,
             childGroupOrder   = data.childGroupOrder,
             tileTypeOverrides = androidTileTypeOverrides,
-            tileOrder         = androidTileOrder
+            tileOrder         = androidTileOrder,
+            multiTileConfigs  = data.multiTileConfigs
         )
     }
 }

@@ -164,6 +164,8 @@ fun TileCard(
                 TileType.RING_DETECTION -> RingDetectionTile(tile, device, hubVariables)
                 TileType.PRESENCE -> PresenceTile(tile, device)
                 TileType.BATTERY -> BatteryTile(tile, device)
+                // Web-only types — not rendered on Android (tiles are filtered from groupAdditions before reaching here)
+                TileType.SUN_TIMES, TileType.MULTI_DEVICE -> {}
             }
         }
     }

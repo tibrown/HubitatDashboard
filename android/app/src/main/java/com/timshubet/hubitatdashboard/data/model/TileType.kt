@@ -16,5 +16,7 @@ enum class TileType {
     MODE,
     RING_DETECTION,
     PRESENCE,
-    BATTERY
+    BATTERY,
+    SUN_TIMES,
+    MULTI_DEVICE
 }

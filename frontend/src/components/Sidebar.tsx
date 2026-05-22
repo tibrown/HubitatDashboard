@@ -28,6 +28,7 @@ export function Sidebar() {
   const setSidebarCollapsed = useDeviceStore((s) => s.setSidebarCollapsed)
   const [showModal, setShowModal] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [showHubPushConfirm, setShowHubPushConfirm] = useState(false)
   const [pendingImport, setPendingImport] = useState<GroupExportPayload | null>(null)
   const [hubSyncing, setHubSyncing] = useState<'push' | 'pull' | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -83,7 +84,8 @@ export function Sidebar() {
     e.target.value = '' // reset so same file can be re-imported
   }
 
-  const handleHubPush = async () => {
+  const doHubPush = async () => {
+    setShowHubPushConfirm(false)
     setHubSyncing('push')
     try {
       const payload: GroupExportPayload = {
@@ -317,7 +319,7 @@ export function Sidebar() {
           </div>
           <div className={`flex ${sidebarCollapsed ? 'flex-col items-center gap-1' : 'gap-1'} mt-1`}>
             <button
-              onClick={handleHubPush}
+              onClick={() => setShowHubPushConfirm(true)}
               disabled={hubSyncing !== null}
               title="Push config to Hubitat hub file manager"
               className={`flex items-center justify-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded transition-colors disabled:opacity-40 ${
@@ -347,6 +349,31 @@ export function Sidebar() {
           onClose={() => setShowModal(false)}
           onConfirm={handleCreate}
         />
+      )}
+
+      {showHubPushConfirm && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Push Config to Hub?</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              This will overwrite the existing backup on the hub with your current configuration. Continue?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowHubPushConfirm(false)}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doHubPush}
+                className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Push
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showImportConfirm && pendingImport && (
