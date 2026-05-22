@@ -34,6 +34,10 @@ class RingNotificationListener : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // Deduplicate: track the last time we forwarded each notification key (tag:id).
+    // Ring posts the same notification multiple times as it updates title/image.
+    private val recentlySeen = mutableMapOf<String, Long>()
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         ringListenerRepository.setServiceConnected(true)
@@ -54,6 +58,19 @@ class RingNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != RING_PACKAGE) return
+
+        // Deduplicate — Ring updates the same notification several times (text → image → large image).
+        // Use tag+id as key; suppress re-processing within the cooldown window.
+        val notifKey = "${sbn.tag}:${sbn.id}"
+        val now = System.currentTimeMillis()
+        val lastSeen = recentlySeen[notifKey]
+        if (lastSeen != null && now - lastSeen < DEDUP_WINDOW_MS) {
+            Log.d(TAG, "Duplicate Ring notification suppressed ($notifKey)")
+            return
+        }
+        recentlySeen[notifKey] = now
+        // Prune stale keys so the map doesn't grow unbounded
+        recentlySeen.entries.removeIf { now - it.value > DEDUP_WINDOW_MS * 2 }
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
@@ -153,5 +170,6 @@ class RingNotificationListener : NotificationListenerService() {
         private const val RING_PACKAGE = "com.ringapp"
         private const val PERSON_TRIGGER = "person"
         private const val HUB_VARIABLE_NAME = "RingPersonDetected"
+        private const val DEDUP_WINDOW_MS = 15_000L  // 15 seconds
     }
 }
