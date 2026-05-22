@@ -132,7 +132,7 @@ fun RingListenerScreen(
             if (events.isEmpty()) {
                 item {
                     Text(
-                        text = "No events yet. Events appear when a Ring \"person detected\" notification is intercepted.",
+                        text = "No events yet. All Ring notifications will appear here — forwarded ones show the hub response, others show why they were skipped.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -250,9 +250,15 @@ private fun RingEventCard(event: RingEvent) {
                     fontFamily = FontFamily.Monospace
                 )
                 Text(
-                    text = if (event.success) "✓ HTTP ${event.httpCode}" else "✗ ${event.error ?: "Failed"}",
+                    text = if (event.success) "✓ HTTP ${event.httpCode}"
+                           else if (event.url.isBlank()) "— skipped"
+                           else "✗ ${event.error ?: "Failed"}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (event.success) successColor else errorColor,
+                    color = when {
+                        event.success    -> successColor
+                        event.url.isBlank() -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else             -> errorColor
+                    },
                     fontWeight = FontWeight.Medium
                 )
             }

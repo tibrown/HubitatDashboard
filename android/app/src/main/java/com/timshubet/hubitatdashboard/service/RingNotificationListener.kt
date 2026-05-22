@@ -59,13 +59,31 @@ class RingNotificationListener : NotificationListenerService() {
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
-        val combined = "$title $text $bigText".trim()
+        val combined = listOf(title, text, bigText)
+            .filter { it.isNotBlank() }
+            .distinct()
+            .joinToString(" | ")
 
         Log.d(TAG, "Ring notification: \"$combined\"")
 
-        if (combined.contains(PERSON_DETECTED_TRIGGER, ignoreCase = true)) {
-            Log.d(TAG, "Person detected — updating hub variable")
+        // Forward any Ring notification that mentions a person — this covers:
+        // "Person detected", "There is a person at your...", "A person was detected", etc.
+        // The Hubitat Groovy app does the fine-grained location matching.
+        if (combined.contains(PERSON_TRIGGER, ignoreCase = true)) {
+            Log.d(TAG, "Person keyword matched — forwarding to hub variable")
             fireHubitatRequest(combined)
+        } else {
+            // Still log it so the Ring Listener screen shows what Ring is actually sending
+            ringListenerRepository.addEvent(
+                RingEvent(
+                    timestamp = java.time.Instant.now(),
+                    notificationText = combined,
+                    url = "",
+                    success = false,
+                    httpCode = null,
+                    error = "Not forwarded (no person keyword)"
+                )
+            )
         }
     }
 
@@ -133,7 +151,7 @@ class RingNotificationListener : NotificationListenerService() {
     companion object {
         private const val TAG = "RingHub"
         private const val RING_PACKAGE = "com.ringapp"
-        private const val PERSON_DETECTED_TRIGGER = "person detected"
+        private const val PERSON_TRIGGER = "person"
         private const val HUB_VARIABLE_NAME = "RingPersonDetected"
     }
 }
