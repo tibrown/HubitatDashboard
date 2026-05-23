@@ -59,9 +59,13 @@ class RingNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != RING_PACKAGE) return
 
+        val extras = sbn.notification.extras
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+
         // Deduplicate — Ring updates the same notification several times (text → image → large image).
-        // Use tag+id as key; suppress re-processing within the cooldown window.
-        val notifKey = "${sbn.tag}:${sbn.id}"
+        // Include the title (camera name) in the key so that two different cameras firing at the same
+        // time are NOT suppressed — only re-posts of the exact same camera event are dropped.
+        val notifKey = "${sbn.tag}:${sbn.id}:$title"
         val now = System.currentTimeMillis()
         val lastSeen = recentlySeen[notifKey]
         if (lastSeen != null && now - lastSeen < DEDUP_WINDOW_MS) {
@@ -72,8 +76,6 @@ class RingNotificationListener : NotificationListenerService() {
         // Prune stale keys so the map doesn't grow unbounded
         recentlySeen.entries.removeIf { now - it.value > DEDUP_WINDOW_MS * 2 }
 
-        val extras = sbn.notification.extras
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
         val combined = listOf(title, text, bigText)
