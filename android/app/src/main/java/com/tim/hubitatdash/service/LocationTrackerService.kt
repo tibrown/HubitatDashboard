@@ -34,6 +34,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.math.abs
 
 /**
  * Foreground service that obtains a single GPS fix via the Fused Location Provider
@@ -74,10 +75,19 @@ class LocationTrackerService : Service() {
                 if (location != null) {
                     val lat = "%.6f".format(location.latitude)
                     val lng = "%.6f".format(location.longitude)
-                    updateNotification("Sending: $lat, $lng")
-                    postLocation(location.latitude, location.longitude)
-                    updateNotification("✓ Sent at ${formatTime()}")
-                    Log.d(TAG, "Location posted: lat=${location.latitude} lng=${location.longitude}")
+                    
+                    // Check if location changed significantly
+                    val (shouldPost, message) = shouldPostLocation(location)
+                    if (shouldPost) {
+                        updateNotification("Sending: $lat, $lng")
+                        postLocation(location.latitude, location.longitude)
+                        updateNotification("✓ Sent at ${formatTime()}")
+                        Log.d(TAG, "Location posted: lat=${location.latitude} lng=${location.longitude}")
+                        saveLastLocation(location.latitude, location.longitude)
+                    } else {
+                        updateNotification(message)
+                        Log.d(TAG, message)
+                    }
                 } else {
                     updateNotification("✗ No GPS fix available")
                     Log.w(TAG, "No location available")
@@ -108,6 +118,44 @@ class LocationTrackerService : Service() {
     }
 
     // region — Location
+
+    private fun shouldPostLocation(newLocation: android.location.Location): Pair<Boolean, String> {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastLat = prefs.getFloat(KEY_LAST_LAT, Float.NaN)
+        val lastLng = prefs.getFloat(KEY_LAST_LNG, Float.NaN)
+        
+        // First time or no saved location
+        if (lastLat.isNaN() || lastLng.isNaN()) {
+            return Pair(true, "First location")
+        }
+        
+        // Calculate distance in miles
+        val lastLocation = android.location.Location("").apply {
+            latitude = lastLat.toDouble()
+            longitude = lastLng.toDouble()
+        }
+        val distanceMeters = newLocation.distanceTo(lastLocation)
+        val distanceMiles = distanceMeters / 1609.34 // 1 mile = 1609.34 meters
+        
+        val minDistance = settingsRepository.gpsMinDistanceMiles
+        val shouldPost = distanceMiles > minDistance
+        
+        val message = if (shouldPost) {
+            "Moving: %.2f mi (threshold: %.1f)".format(distanceMiles, minDistance)
+        } else {
+            "Too close: %.3f mi (threshold: %.1f)".format(distanceMiles, minDistance)
+        }
+        
+        return Pair(shouldPost, message)
+    }
+
+    private fun saveLastLocation(latitude: Double, longitude: Double) {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putFloat(KEY_LAST_LAT, latitude.toFloat())
+            .putFloat(KEY_LAST_LNG, longitude.toFloat())
+            .apply()
+    }
 
     private suspend fun getDeviceLocation(): android.location.Location? {
         try {
@@ -222,6 +270,9 @@ class LocationTrackerService : Service() {
         private const val TAG = "GPSTracker"
         private const val CHANNEL_ID = "gps_tracker"
         private const val NOTIFICATION_ID = 9002
+        private const val PREFS_NAME = "gps_tracker_prefs"
+        private const val KEY_LAST_LAT = "last_latitude"
+        private const val KEY_LAST_LNG = "last_longitude"
     }
 }
 

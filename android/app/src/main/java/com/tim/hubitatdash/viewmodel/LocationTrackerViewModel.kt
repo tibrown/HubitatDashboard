@@ -29,7 +29,8 @@ data class TrackerUiState(
     val deviceName: String = "",
     val hasFineLocation: Boolean = false,
     val hasBackgroundLocation: Boolean = false,
-    val isTesting: Boolean = false
+    val isTesting: Boolean = false,
+    val minDistanceMiles: Float = 1.0f
 )
 
 @HiltViewModel
@@ -100,6 +101,12 @@ class LocationTrackerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(deviceName = name)
     }
 
+    fun setMinDistanceMiles(miles: Float) {
+        val clamped = miles.coerceAtLeast(0.1f)
+        settingsRepository.setGpsMinDistanceMiles(clamped)
+        _uiState.value = _uiState.value.copy(minDistanceMiles = clamped)
+    }
+
     fun testNow(context: Context) {
         if (!settingsRepository.isGpsTrackerConfigured()) {
             Log.w(TAG, "Cannot test — tracker not configured")
@@ -129,7 +136,8 @@ class LocationTrackerViewModel @Inject constructor(
                 ContextCompat.checkSelfPermission(
                     context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
-            } else true
+            } else true,
+            minDistanceMiles = settingsRepository.gpsMinDistanceMiles
         )
     }
 

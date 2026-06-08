@@ -247,6 +247,20 @@ fun LocationTrackerScreen(
                             }
                         }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = "%.1f".format(uiState.minDistanceMiles),
+                        onValueChange = { value ->
+                            value.toFloatOrNull()?.let { viewModel.setMinDistanceMiles(it) }
+                        },
+                        label = { Text("Min distance to trigger update") },
+                        placeholder = { Text("1.0") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        suffix = { Text("miles") }
+                    )
                 }
             }
 

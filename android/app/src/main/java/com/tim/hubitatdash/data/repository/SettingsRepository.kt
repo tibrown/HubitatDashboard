@@ -24,6 +24,7 @@ class SettingsRepository @Inject constructor(
         const val KEY_GPS_TRACKING_INTERVAL = "gps_tracking_interval"
         const val KEY_GPS_APPS_SCRIPT_URL = "gps_apps_script_url"
         const val KEY_GPS_DEVICE_NAME = "gps_device_name"
+        const val KEY_GPS_MIN_DISTANCE = "gps_min_distance_miles"
     }
 
     val localHubIp: String get() = prefs.getString(KEY_LOCAL_HUB_IP, "") ?: ""
@@ -41,6 +42,7 @@ class SettingsRepository @Inject constructor(
     val gpsTrackingInterval: Int get() = prefs.getInt(KEY_GPS_TRACKING_INTERVAL, 15)
     val gpsAppsScriptUrl: String get() = prefs.getString(KEY_GPS_APPS_SCRIPT_URL, "") ?: ""
     val gpsDeviceName: String get() = prefs.getString(KEY_GPS_DEVICE_NAME, "") ?: ""
+    val gpsMinDistanceMiles: Float get() = prefs.getFloat(KEY_GPS_MIN_DISTANCE, 1.0f)
 
     fun setLocalHubIp(value: String) = prefs.edit().putString(KEY_LOCAL_HUB_IP, value).apply()
     fun setMakerAppId(value: String) = prefs.edit().putString(KEY_MAKER_APP_ID, value).apply()
@@ -57,6 +59,7 @@ class SettingsRepository @Inject constructor(
     fun setGpsTrackingInterval(minutes: Int) = prefs.edit().putInt(KEY_GPS_TRACKING_INTERVAL, minutes).apply()
     fun setGpsAppsScriptUrl(url: String) = prefs.edit().putString(KEY_GPS_APPS_SCRIPT_URL, url).apply()
     fun setGpsDeviceName(name: String) = prefs.edit().putString(KEY_GPS_DEVICE_NAME, name).apply()
+    fun setGpsMinDistanceMiles(miles: Float) = prefs.edit().putFloat(KEY_GPS_MIN_DISTANCE, miles).apply()
 
     fun isGpsTrackerConfigured(): Boolean = gpsAppsScriptUrl.isNotBlank() && gpsDeviceName.isNotBlank()
 
