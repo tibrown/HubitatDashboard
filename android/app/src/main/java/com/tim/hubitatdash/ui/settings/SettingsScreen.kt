@@ -26,7 +26,7 @@ import com.tim.hubitatdash.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onSaveSuccess: () -> Unit,
     onRingListenerClick: () -> Unit = {},
-    onGpsTrackerClick: () -> Unit = {},
+    onGpsTrackerClick: () -> Unit = { /* GPS Tracker screen not available */ },
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

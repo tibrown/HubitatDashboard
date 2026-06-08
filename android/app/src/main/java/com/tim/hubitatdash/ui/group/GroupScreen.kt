@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -141,7 +142,7 @@ fun GroupScreen(
         }
     }
     // Keep keys in sync when tiles are added/removed
-    remember(tileKeys) { dragState.updateKeys(tileKeys) }
+    SideEffect { dragState.updateKeys(tileKeys) }
     val scope = rememberCoroutineScope()
 
     if (showDevicePicker) {
