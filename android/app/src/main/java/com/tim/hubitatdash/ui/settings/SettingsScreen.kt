@@ -78,7 +78,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Settings") })
+            TopAppBar(title = { Text("Settings [v3]") })
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -244,18 +244,16 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             OutlinedButton(
-                onClick = onRingListenerClick,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Ring Listener →") }
-
-            Spacer(modifier = Modifier.size(12.dp))
-
-            OutlinedButton(
                 onClick = onGpsTrackerClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("GPS Tracker Settings →")
             }
+
+            OutlinedButton(
+                onClick = onRingListenerClick,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Ring Listener →") }
 
             Spacer(modifier = Modifier.size(24.dp))
         }
