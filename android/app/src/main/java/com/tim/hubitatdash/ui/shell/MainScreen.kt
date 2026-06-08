@@ -34,10 +34,12 @@ import com.tim.hubitatdash.ui.hubitat.HubitatNotificationScreen
 import com.tim.hubitatdash.ui.logs.AllNotificationsScreen
 import com.tim.hubitatdash.ui.ring.RingListenerScreen
 import com.tim.hubitatdash.ui.settings.SettingsScreen
+import com.tim.hubitatdash.ui.tracker.LocationTrackerScreen
 import com.tim.hubitatdash.viewmodel.AllNotificationsViewModel
 import com.tim.hubitatdash.viewmodel.DeviceViewModel
 import com.tim.hubitatdash.viewmodel.GroupEditViewModel
 import com.tim.hubitatdash.viewmodel.HubitatNotificationViewModel
+import com.tim.hubitatdash.viewmodel.LocationTrackerViewModel
 import com.tim.hubitatdash.viewmodel.RingListenerViewModel
 import kotlinx.coroutines.launch
 
@@ -118,6 +120,7 @@ fun MainScreen(
             NavRoutes.RING_LISTENER -> "Ring Listener"
             NavRoutes.HUBITAT_LISTENER -> "Hubitat Notifications"
             NavRoutes.ALL_LOGS -> "All Notifications"
+            NavRoutes.GPS_TRACKER -> "GPS Tracker"
             else -> "Hubitat Dashboard"
         }
 
@@ -157,7 +160,7 @@ fun MainScreen(
                 )
             },
             bottomBar = {
-                if (currentRoute != NavRoutes.SETTINGS && currentRoute != NavRoutes.RING_LISTENER && currentRoute != NavRoutes.HUBITAT_LISTENER && currentRoute != NavRoutes.ALL_LOGS) {
+                if (currentRoute != NavRoutes.SETTINGS && currentRoute != NavRoutes.RING_LISTENER && currentRoute != NavRoutes.HUBITAT_LISTENER && currentRoute != NavRoutes.ALL_LOGS && currentRoute != NavRoutes.GPS_TRACKER) {
                     GroupBottomNav(
                         currentGroupId = currentGroupId,
                         onGroupSelected = { navController.navigate(NavRoutes.group(it)) },
@@ -195,6 +198,9 @@ fun MainScreen(
                                 },
                                 onRingListenerClick = {
                                     navController.navigate(NavRoutes.RING_LISTENER)
+                                },
+                                onGpsTrackerClick = {
+                                    navController.navigate(NavRoutes.GPS_TRACKER)
                                 }
                             )
                         }
@@ -210,6 +216,11 @@ fun MainScreen(
                         }
                         composable(NavRoutes.ALL_LOGS) {
                             AllNotificationsScreen(
+                                onNavigateBack = { navController.popBackStack(startDestination, false) }
+                            )
+                        }
+                        composable(NavRoutes.GPS_TRACKER) {
+                            LocationTrackerScreen(
                                 onNavigateBack = { navController.popBackStack(startDestination, false) }
                             )
                         }
