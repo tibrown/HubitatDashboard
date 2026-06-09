@@ -99,6 +99,39 @@ export function allGroupsForDevice(
   return [...new Set([...staticIds, ...addedTo])]
 }
 
+/** Rebuilds childGroupOrder from customGroups[].parentId to prevent orphaned sub-groups.
+ *  Preserves existing order where possible, appends missing children alphabetically,
+ *  drops dangling IDs that no longer exist. */
+function reconcileChildGroupOrder(
+  customGroups: CustomGroup[],
+  existing: Record<string, string[]>,
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  // Group children by parentId
+  const childMap = new Map<string, CustomGroup[]>()
+  for (const group of customGroups) {
+    if (group.parentId) {
+      const children = childMap.get(group.parentId) ?? []
+      children.push(group)
+      childMap.set(group.parentId, children)
+    }
+  }
+  // Rebuild each parent's order
+  for (const [parentId, children] of childMap) {
+    const prev = existing[parentId] ?? []
+    const childIds = new Set(children.map((c) => c.id))
+    // Keep existing order but only for children that still exist
+    const ordered = prev.filter((id) => childIds.has(id))
+    // Find missing children (not yet in ordered) and append them alphabetically
+    const missing = children
+      .filter((c) => !ordered.includes(c.id))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map((c) => c.id)
+    result[parentId] = [...ordered, ...missing]
+  }
+  return result
+}
+
 /** Expands v1 flat (deviceId → TileType) overrides to v2 per-group format. */
 function expandV1Overrides(
   flatOverrides: Record<string, TileType>,
@@ -379,7 +412,7 @@ export const useGroupStore = create<GroupStore>()(
             groupAdditions:    data.groupAdditions,
             groupExclusions:   data.groupExclusions,
             groupOrder:        mergedOrder,
-            childGroupOrder:   data.childGroupOrder,
+            childGroupOrder:   reconcileChildGroupOrder(data.customGroups, data.childGroupOrder),
             tileTypeOverrides,
             tileOrder:         data.tileOrder,
             multiTileConfigs:  (data as GroupExportPayload & { multiTileConfigs?: Record<string, MultiTileConfig> }).multiTileConfigs ?? {},
@@ -414,7 +447,18 @@ export const useGroupStore = create<GroupStore>()(
           }
         }
 
-        return { ...current, ...stored, groupOrder: merged, tileTypeOverrides, multiTileConfigs: stored.multiTileConfigs ?? {}, tileTitleOverrides: stored.tileTitleOverrides ?? {} }
+        return {
+          ...current,
+          ...stored,
+          groupOrder: merged,
+          childGroupOrder: reconcileChildGroupOrder(
+            stored.customGroups ?? [],
+            stored.childGroupOrder ?? {},
+          ),
+          tileTypeOverrides,
+          multiTileConfigs: stored.multiTileConfigs ?? {},
+          tileTitleOverrides: stored.tileTitleOverrides ?? {},
+        }
       },
     },
   ),

@@ -789,11 +789,19 @@ function CustomGroupPage({ groupId }: Props) {
     ? customGroups.find((g) => g.id === customGroup.parentId)
     : undefined
 
-  // Sub-groups of this group — ordered by childGroupOrder (user-defined), fallback alphabetical
-  const childIds = childGroupOrder[groupId] ?? []
-  const childGroups = childIds
-    .map((id) => customGroups.find((g) => g.id === id))
-    .filter((g): g is NonNullable<typeof g> => !!g)
+  // Sub-groups of this group — derive from parentId (source of truth), use childGroupOrder for ordering
+  const childGroups = customGroups
+    .filter((g) => g.parentId === groupId)
+    .sort((a, b) => {
+      // Use childGroupOrder for ordering if available
+      const ids = childGroupOrder[groupId] ?? []
+      const ia = ids.indexOf(a.id)
+      const ib = ids.indexOf(b.id)
+      if (ia === -1 && ib === -1) return a.displayName.localeCompare(b.displayName)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
 
   const addedIds = groupAdditions[groupId] ?? []
   const tiles: TileConfig[] = addedIds.flatMap((id) => {
