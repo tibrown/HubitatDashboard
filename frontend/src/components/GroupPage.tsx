@@ -412,7 +412,7 @@ function EditOverlay({
             </button>
             {showTypeMenu && (
               <div
-                className="absolute bottom-full mb-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[130px] max-h-64 overflow-y-auto"
+                className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-50 min-w-[130px] max-h-64 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 {availTypes.map((type) => (
