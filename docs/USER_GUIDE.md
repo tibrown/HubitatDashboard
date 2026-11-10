@@ -198,7 +198,7 @@ The backend is the part of the web app that talks to your hub. It needs to know 
    - `databaseUrl` — only if you want group config persisted to a MySQL database. If you're not using MySQL, you can **delete this line**.
    - `gpsMap` — URL of your public GPS Google Sheet. Needed only for the GPS map (see [Section 11](#11-gps-tracking--show-where-your-phones-are-on-a-map)).
    - `home` — your home's address/coordinates, used to label GPS stops. Optional.
-   - `ollama` / `openrouter` — AI providers for GPS trip summaries (see [Section 11.6](#116-gps-ai-trip-summary-the-report-button)).
+   - `ollama` / `openrouter` — AI providers for GPS trip summaries (see [Section 11.7](#117-gps-ai-trip-summary-the-report-button)).
 10. Save the file (Ctrl+S) and close Notepad.
 
 **Example of a filled-in config.json:**
@@ -527,6 +527,7 @@ Fill in the following fields:
 | **Control PIN** *(optional)* | A 4-digit PIN that protects security, hub-mode, and lock actions | Enter it here once; you'll be asked for it when you arm/disarm security, change mode, or unlock. To change or clear it later, return here. |
 | **GPS Apps Script URL** *(optional)* | Where the app posts your location for the GPS map | Your own Google Apps Script endpoint — see [Section 11](#11-gps-tracking--show-where-your-phones-are-on-a-map) |
 | **GPS Device Name** *(optional)* | A name that tags your location in the log (e.g. "My Phone") | Whatever you like — it appears as the device filter on the GPS map |
+| **Enable Perimeter Watch** *(optional)* | Alerts (with sound) when this phone comes within the radius of the other phone | GPS Tracker screen — see 11.5. Home phone must be tracking to the same sheet |
 
 **Connection Mode:**
 - **Local** — Connect to your hub only on your home Wi-Fi. Use this if you only want to control your home when you're at home.
@@ -685,7 +686,23 @@ On each phone that should be tracked, in the app's **Settings**:
 
 > New phones are extra-prone to this: OEM battery optimizations sometimes kill background location services. If a phone simply stops appearing, re-check the permission above, then test.
 
-### 11.5 View the map
+### 11.5 Perimeter Watch (approach alert)
+
+**Perimeter Watch** alerts you — a notification with sound — when this phone (the traveler) comes within a set distance of the other phone (the base, e.g. the phone that stays home).
+
+1. Both phones must be tracking to the **same Google Sheet** (see 11.1–11.4). The traveling phone runs the app with Perimeter Watch checked; the base phone just needs its normal tracking running.
+2. In the app's **GPS Tracker** screen, check **Enable Perimeter Watch**.
+3. **Other phone device name** defaults to `Pixel 9 Pro` — it must match the base phone's **GPS Device Name** exactly as it appears in the sheet's `device` column.
+4. **Perimeter radius** defaults to `1.0` miles. You can change it anytime; new value applies on the next check.
+
+How it behaves:
+
+- The app compares its location against the base phone's **latest** fix in the sheet, re-checking at most every ~30 seconds while tracking is active.
+- You are alerted **once per approach** — when crossing from outside to inside the radius. Leave range and come back and it alerts again.
+- If the base phone hasn't posted a fix for **20+ minutes**, checks pause so a stale last-known spot can't false-trigger.
+- The notification uses a high-importance channel and **plays your notification sound**, unless the phone is on **Do Not Disturb** or at zero volume (platform limit).
+
+### 11.6 View the map
 
 - **Web:** open the **GPS Track** page (in the sidebar). The map defaults to **today** and shows only phones that have points in the selected range. Use the controls to:
   - filter by **phone** (only phones with points in the date range are listed),
@@ -694,7 +711,7 @@ On each phone that should be tracked, in the app's **Settings**:
   - (optionally) enable **road distance** via OSRM for driving-distance legs.
 - **Android:** open **GPS** from the main navigation menu for the same map on your phone.
 
-### 11.6 GPS AI Trip Summary (the "Report" button)
+### 11.7 GPS AI Trip Summary (the "Report" button)
 
 On the GPS Track page, the **Report** (green) button turns the currently-filtered route into a short, human-readable trip summary — naming the businesses and addresses you stopped at, how long you stayed, and travel time between stops.
 
@@ -706,7 +723,7 @@ On the GPS Track page, the **Report** (green) button turns the currently-filtere
 - The providers are configured in `backend/config.json` as the **`ollama`** and **`openrouter`** blocks (both optional; if neither is present the Report feature is hidden).
 - Stops are detected automatically server-side; each stop is named via **OpenStreetMap / Overpass** (nearest business or street address). With the `home` block set, trips stopping at home are labeled "Home — <address>" instead of a nearby business.
 
-### 11.7 GPS Troubleshooting
+### 11.8 GPS Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
@@ -715,6 +732,7 @@ On the GPS Track page, the **Report** (green) button turns the currently-filtere
 | Map empty for a day that should have points | Date range isn't covering it (it defaults to *today*), or the phone filter is set to another device. |
 | "Phone not in the dropdown" | That phone has no points **in the selected date range** — widen the range. |
 | Tracker stops after a phone restart/app update | The tracker re-asserts itself on launch **only when GPS tracking is enabled and configured** — re-open Settings to make sure the URL + name are saved. |
+| Perimeter Watch never alerts | Check: base phone is actively tracking to the **same sheet** (its fix must be under 20 min old), its **device name** matches exactly, and the phone isn't on **Do Not Disturb**/zero volume (sound won't play, though the notification still shows). |
 
 ---
 

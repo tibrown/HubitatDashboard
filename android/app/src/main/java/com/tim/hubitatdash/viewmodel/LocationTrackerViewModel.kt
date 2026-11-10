@@ -34,7 +34,10 @@ data class TrackerUiState(
     val pollingIntervalSeconds: Int = 10,
     val startHour: Int = 0,
     val endHour: Int = 23,
-    val mapCsvUrl: String = ""
+    val mapCsvUrl: String = "",
+    val perimeterEnabled: Boolean = false,
+    val perimeterRadiusMiles: Float = 1.0f,
+    val perimeterPeerDevice: String = ""
 )
 
 @HiltViewModel
@@ -108,6 +111,22 @@ class LocationTrackerViewModel @Inject constructor(
     fun setMapCsvUrl(url: String) {
         settingsRepository.setGpsMapCsvUrl(url.trim())
         _uiState.value = _uiState.value.copy(mapCsvUrl = url)
+    }
+
+    fun setPerimeterEnabled(enabled: Boolean) {
+        settingsRepository.setPerimeterWatchEnabled(enabled)
+        _uiState.value = _uiState.value.copy(perimeterEnabled = enabled)
+    }
+
+    fun setPerimeterRadiusMiles(miles: Float) {
+        val clamped = miles.coerceAtLeast(0.1f)
+        settingsRepository.setPerimeterWatchRadiusMiles(clamped)
+        _uiState.value = _uiState.value.copy(perimeterRadiusMiles = clamped)
+    }
+
+    fun setPerimeterPeerDevice(name: String) {
+        settingsRepository.setPerimeterWatchPeerDevice(name.trim())
+        _uiState.value = _uiState.value.copy(perimeterPeerDevice = name)
     }
 
     fun setMinDistanceMiles(miles: Float) {
@@ -190,7 +209,10 @@ class LocationTrackerViewModel @Inject constructor(
             pollingIntervalSeconds = settingsRepository.gpsPollingIntervalSeconds,
             startHour = settingsRepository.gpsStartHour,
             endHour = settingsRepository.gpsEndHour,
-            mapCsvUrl = settingsRepository.gpsMapCsvUrl
+            mapCsvUrl = settingsRepository.gpsMapCsvUrl,
+            perimeterEnabled = settingsRepository.perimeterWatchEnabled,
+            perimeterRadiusMiles = settingsRepository.perimeterWatchRadiusMiles,
+            perimeterPeerDevice = settingsRepository.perimeterWatchPeerDevice
         )
     }
 

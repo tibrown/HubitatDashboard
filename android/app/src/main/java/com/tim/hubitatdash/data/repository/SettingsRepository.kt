@@ -29,8 +29,14 @@ class SettingsRepository @Inject constructor(
         const val KEY_GPS_END_HOUR = "gps_end_hour"
         const val KEY_GPS_POLLING_INTERVAL = "gps_polling_interval_seconds"
         const val KEY_GPS_MAP_CSV_URL = "gps_map_csv_url"
+        const val KEY_PERIMETER_ENABLED = "perimeter_watch_enabled"
+        const val KEY_PERIMETER_RADIUS_MILES = "perimeter_watch_radius_miles"
+        const val KEY_PERIMETER_PEER_DEVICE = "perimeter_watch_peer_device"
         private const val DEFAULT_GPS_MAP_CSV_URL =
             "https://docs.google.com/spreadsheets/d/1EGNmf9XvinmTE5EGZUOBjaoeU1HIvBLHlz33TN0KfcU/export?format=csv&gid=0"
+        // Base phone (home) device name in the shared GPS sheet. The traveler (Pixel 9 Pro XL)
+        // runs this app; the base is always the fixed reference point for perimeter checks.
+        private const val DEFAULT_PERIMETER_PEER_DEVICE = "Pixel 9 Pro"
     }
 
     val localHubIp: String get() = prefs.getString(KEY_LOCAL_HUB_IP, "") ?: ""
@@ -53,6 +59,11 @@ class SettingsRepository @Inject constructor(
     val gpsEndHour: Int get() = prefs.getInt(KEY_GPS_END_HOUR, 23)
     val gpsPollingIntervalSeconds: Int get() = prefs.getInt(KEY_GPS_POLLING_INTERVAL, 10)
     val gpsMapCsvUrl: String get() = prefs.getString(KEY_GPS_MAP_CSV_URL, DEFAULT_GPS_MAP_CSV_URL) ?: DEFAULT_GPS_MAP_CSV_URL
+    val perimeterWatchEnabled: Boolean get() = prefs.getBoolean(KEY_PERIMETER_ENABLED, false)
+    val perimeterWatchRadiusMiles: Float get() = prefs.getFloat(KEY_PERIMETER_RADIUS_MILES, 1.0f)
+    val perimeterWatchPeerDevice: String
+        get() = prefs.getString(KEY_PERIMETER_PEER_DEVICE, DEFAULT_PERIMETER_PEER_DEVICE)
+            ?: DEFAULT_PERIMETER_PEER_DEVICE
 
     fun setLocalHubIp(value: String) = prefs.edit().putString(KEY_LOCAL_HUB_IP, value).apply()
     fun setMakerAppId(value: String) = prefs.edit().putString(KEY_MAKER_APP_ID, value).apply()
@@ -74,6 +85,9 @@ class SettingsRepository @Inject constructor(
     fun setGpsEndHour(hour: Int) = prefs.edit().putInt(KEY_GPS_END_HOUR, hour).apply()
     fun setGpsPollingIntervalSeconds(seconds: Int) = prefs.edit().putInt(KEY_GPS_POLLING_INTERVAL, seconds).apply()
     fun setGpsMapCsvUrl(url: String) = prefs.edit().putString(KEY_GPS_MAP_CSV_URL, url).apply()
+    fun setPerimeterWatchEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_PERIMETER_ENABLED, enabled).apply()
+    fun setPerimeterWatchRadiusMiles(miles: Float) = prefs.edit().putFloat(KEY_PERIMETER_RADIUS_MILES, miles).apply()
+    fun setPerimeterWatchPeerDevice(name: String) = prefs.edit().putString(KEY_PERIMETER_PEER_DEVICE, name).apply()
 
     fun isGpsTrackerConfigured(): Boolean = gpsAppsScriptUrl.isNotBlank() && gpsDeviceName.isNotBlank()
 

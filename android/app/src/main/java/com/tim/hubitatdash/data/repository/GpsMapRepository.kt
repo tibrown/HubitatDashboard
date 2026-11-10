@@ -22,6 +22,24 @@ class GpsMapRepository @Inject constructor(
         endDate: LocalDate?,
         csvUrlOverride: String? = null
     ): List<GpsDataPoint> {
+        val rawPoints = fetchCsv(csvUrlOverride)
+        val filtered = filterByDate(rawPoints, startDate, endDate)
+        return filtered.sortedBy { parseTimestampMillis(it.timestamp) ?: Long.MAX_VALUE }
+    }
+
+    /**
+     * Latest point for a given device name (case-insensitive match on the CSV `device` column),
+     * or null when that device has no points or the fetch/parse fails.
+     */
+    suspend fun fetchLatestPointForDevice(csvUrlOverride: String?, deviceName: String): GpsDataPoint? {
+        val target = deviceName.trim()
+        if (target.isEmpty()) return null
+        return fetchCsv(csvUrlOverride)
+            .filter { it.device?.trim()?.equals(target, ignoreCase = true) == true }
+            .maxByOrNull { parseTimestampMillis(it.timestamp) ?: Long.MIN_VALUE }
+    }
+
+    private suspend fun fetchCsv(csvUrlOverride: String?): List<GpsDataPoint> {
         val csvUrl = csvUrlOverride?.takeIf { it.isNotBlank() } ?: DEFAULT_CSV_URL
         val request = Request.Builder().url(csvUrl).get().build()
         val csvText = okHttpClient.newCall(request).execute().use { response ->
@@ -30,10 +48,7 @@ class GpsMapRepository @Inject constructor(
             }
             response.body?.string() ?: ""
         }
-
-        val rawPoints = parseCsv(csvText)
-        val filtered = filterByDate(rawPoints, startDate, endDate)
-        return filtered.sortedBy { parseTimestampMillis(it.timestamp) ?: Long.MAX_VALUE }
+        return parseCsv(csvText)
     }
 
     private fun filterByDate(

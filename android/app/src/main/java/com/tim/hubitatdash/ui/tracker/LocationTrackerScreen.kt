@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -148,6 +149,61 @@ fun LocationTrackerScreen(
                         checked = uiState.enabled,
                         onCheckedChange = { viewModel.setEnabled(it) },
                         enabled = uiState.hasFineLocation && uiState.appsScriptUrl.isNotBlank()
+                    )
+                }
+            }
+
+            // === Perimeter Watch ===
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = uiState.perimeterEnabled,
+                            onCheckedChange = { viewModel.setPerimeterEnabled(it) }
+                        )
+                        Column(modifier = Modifier.padding(start = 4.dp)) {
+                            Text("Enable Perimeter Watch", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Alert when this phone comes within ${uiState.perimeterRadiusMiles} mi of the other phone",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.perimeterPeerDevice,
+                        onValueChange = { viewModel.setPerimeterPeerDevice(it) },
+                        label = { Text("Other phone device name (from sheet)") },
+                        placeholder = { Text("Pixel 9 Pro") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = uiState.perimeterEnabled
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = uiState.perimeterRadiusMiles.toString(),
+                        onValueChange = { v ->
+                            v.toFloatOrNull()?.let { viewModel.setPerimeterRadiusMiles(it) }
+                        },
+                        label = { Text("Perimeter radius") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        suffix = { Text("miles") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        enabled = uiState.perimeterEnabled
                     )
                 }
             }

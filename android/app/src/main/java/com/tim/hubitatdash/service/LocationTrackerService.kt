@@ -1,5 +1,6 @@
 package com.tim.hubitatdash.service
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -7,13 +8,16 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import com.tim.hubitatdash.data.repository.AllNotificationEvent
 import com.tim.hubitatdash.data.repository.AllNotificationsRepository
+import com.tim.hubitatdash.data.repository.GpsMapRepository
 import com.tim.hubitatdash.data.repository.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -127,6 +131,7 @@ class LocationBroadcastReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var allNotificationsRepository: AllNotificationsRepository
     @Inject lateinit var okHttpClient: OkHttpClient
+    @Inject lateinit var gpsMapRepository: GpsMapRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         val result = LocationResult.extractResult(intent) ?: return
@@ -146,7 +151,11 @@ class LocationBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun processLocation(context: Context, location: android.location.Location) {
+    private suspend fun processLocation(context: Context, location: android.location.Location) {
+        // --- Perimeter Watch: alert when this phone comes within range of the other phone.
+        // Checked BEFORE the time-of-day gate so approaches alert even outside tracking hours.
+        checkPerimeter(context, location)
+
         // --- Time-of-day gate ---
         val hour = LocalTime.now().hour
         val startHour = settingsRepository.gpsStartHour
@@ -229,6 +238,73 @@ class LocationBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
+    private suspend fun checkPerimeter(context: Context, location: android.location.Location) {
+        if (!settingsRepository.perimeterWatchEnabled) return
+        val peer = settingsRepository.perimeterWatchPeerDevice
+        if (peer.isBlank()) {
+            log("Perimeter Watch", "Enabled but no other-phone device name configured")
+            return
+        }
+
+        val prefs = context.getSharedPreferences(PERIMETER_PREFS, Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+
+        // Rate-limit the CSV fetch — location samples fire every few seconds, but the sheet
+        // only needs polling periodically (default: every 3x the polling interval, min 15s).
+        val minIntervalMs = settingsRepository.gpsPollingIntervalSeconds.coerceAtLeast(5) * 3L * 1000L
+        if (now - prefs.getLong(PERIMETER_LAST_CHECK, 0L) < minIntervalMs) return
+        prefs.edit().putLong(PERIMETER_LAST_CHECK, now).apply()
+
+        // Best-effort fetch of the peer's latest point from the shared GPS sheet.
+        val peerPoint = runCatching {
+            gpsMapRepository.fetchLatestPointForDevice(settingsRepository.gpsMapCsvUrl, peer)
+        }.getOrNull()
+        if (peerPoint == null) {
+            log("Perimeter Watch", "Could not fetch peer location for '$peer'")
+            return
+        }
+
+        // Staleness guard: a parked/home phone's stale last-known fix shouldn't false-trigger.
+        val peerAgeMs = now - peerTimestampMillis(peerPoint.timestamp)
+        if (peerAgeMs > PEER_STALE_MS) {
+            Log.d(TAG, "Peer fix stale (${peerAgeMs / 1000}s old) — skipping perimeter check")
+            return
+        }
+
+        val miles = PerimeterWatchLogic.distanceMiles(
+            location.latitude, location.longitude, peerPoint.lat, peerPoint.long
+        )
+        val radius = settingsRepository.perimeterWatchRadiusMiles
+        val inRadius = miles <= radius
+
+        // Edge-triggered: alert only on the outside -> inside crossing, never while already inside.
+        val wasInside = prefs.getBoolean(PERIMETER_INSIDE, false)
+        val alertNow = PerimeterWatchLogic.shouldAlert(wasInside, inRadius)
+        prefs.edit()
+            .putBoolean(PERIMETER_INSIDE, PerimeterWatchLogic.nextInsideState(wasInside, inRadius))
+            .apply()
+
+        Log.d(TAG, "Perimeter: ${miles}mi vs ${radius}mi radius, inRadius=$inRadius, alert=$alertNow")
+
+        if (alertNow) {
+            PerimeterWatchNotifier.show(context, miles, radius)
+            log(
+                "Perimeter Watch ⚠",
+                String.format(
+                    "%s is %.2f mi from %s (radius %.1f mi)",
+                    peer, miles, settingsRepository.gpsDeviceName, radius
+                )
+            )
+        }
+    }
+
+    private fun peerTimestampMillis(timestamp: String): Long {
+        // GpsMapRepository.normalizeTimestamp stores ISO-8601 strings; if parsing ever fails,
+        // treat as fresh rather than suppressing a legitimately close approach.
+        return runCatching { java.time.Instant.parse(timestamp).toEpochMilli() }
+            .getOrElse { System.currentTimeMillis() }
+    }
+
     private fun log(title: String, text: String) {
         allNotificationsRepository.addEvent(
             AllNotificationEvent(
@@ -247,5 +323,9 @@ class LocationBroadcastReceiver : BroadcastReceiver() {
         private const val KEY_LAST_LNG = "last_longitude"
         private const val KEY_LAST_UPLOAD_TIME = "last_upload_time"
         private const val METERS_PER_MILE = 1609.344f
+        private const val PERIMETER_PREFS = "perimeter_watch_prefs"
+        private const val PERIMETER_LAST_CHECK = "last_check_ms"
+        private const val PERIMETER_INSIDE = "inside"
+        private const val PEER_STALE_MS = 20L * 60L * 1000L
     }
 }
